@@ -3,10 +3,6 @@
 % GLORYS data needs to be loaded as "folder_name."
 % 
 
-% This is building on a previous file dated 10Jan23.  Here, though, I just
-% intend to refresh my memory about what I had done previously while
-% updating the oxygen data from 2020 through to 2024.
-
 % An external function
 % called find_isopleth_depth is what does the calculations, and that
 % function ingests serveral data and variables, namely one time step of the
