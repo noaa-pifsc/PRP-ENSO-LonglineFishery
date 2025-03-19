@@ -1,4 +1,4 @@
-function [std_anomaly] = calulate_std_anomaly(property_3d_matrix)
+function [std_anomaly] = calculate_std_anomaly(property_3d_matrix)
 % Input here is a 4d matrix [months lat lon] of a property
 
 [m, o, p] = size(property_3d_matrix);
