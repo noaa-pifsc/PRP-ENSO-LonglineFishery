@@ -10,7 +10,7 @@ for q = 1:o
     for r = 1:p
         profile_value = interp1(depth(1:depth_max_loc),squeeze(property_3d_matrix(:,q,r)),1:depth_res_interp:depth_max,'linear'); % linearly interpolate between model depth levels to the levels specified
         profile_depth = 1:depth_res_interp:depth_max;
-        if min(profile_value)<target_isopleth  % if the minimm of the profile is less than the target isopleth
+        if min(profile_value)<target_isopleth  % if the minimm of the profile is less than the target isopleth.  ***NOTE*** This was written with a subsurface minimum in mind.  Needs mod for other profile shapes.
             isopleth_depth(q,r) = profile_depth(find(profile_value<target_isopleth,1)); % then return the first location where the value is less than the target isopleth
         elseif isnan(min(profile_value))
             isopleth_depth(q,r) = NaN; % If there are no data, return NaN
