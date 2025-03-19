@@ -15,3 +15,5 @@ anomaly = NaN([m o p]);
 for i = 1:12
     anomaly(i:12:end,:,:) = property_3d_matrix(i:12:end,:,:)-repmat(climatology_mean(i,:,:),[len/12 1 1]);
 end
+
+end
