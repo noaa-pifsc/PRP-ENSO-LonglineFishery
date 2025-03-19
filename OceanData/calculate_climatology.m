@@ -10,3 +10,5 @@ for i = 1:12
     climatology_mean(i,:,:) = mean(property_3d_matrix(i:12:len-mod(len,12),:,:));
     climatology_std(i,:,:) = std(property_3d_matrix(i:12:len-mod(len,12),:,:));
 end
+
+end
