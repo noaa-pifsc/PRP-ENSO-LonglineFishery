@@ -1,4 +1,4 @@
-function [climatology] = caluclate_climatology(property_3d_matrix,target_isopleth,depth_max,depth,depth_res_interp)
+function [climatology] = calculate_climatology(property_3d_matrix,target_isopleth,depth_max,depth,depth_res_interp)
 % Input here are a 3d matrix [depth lat lon] of a property, the target
 % isopleth of the property, the maximum depth to be considered, the depth
 % vector, and the depth resolution to interpolate onto
