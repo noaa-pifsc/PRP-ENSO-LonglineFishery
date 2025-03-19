@@ -1,4 +1,4 @@
-function [climatology_mean,climatology_std] = calulate_climatology(property_3d_matrix)
+function [climatology_mean,climatology_std] = calculate_climatology(property_3d_matrix)
 % Input here is a 4d matrix [months lat lon] of a property
 
 [m, o, p] = size(property_3d_matrix);
