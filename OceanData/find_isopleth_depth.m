@@ -19,7 +19,7 @@ for q = 1:o
         end
         
         % Find the first depth where the interpolated value drops below the isopleth threshold
-        idx = find(profile_value < target_isopleth, 1);  **NOTE*** This was written with a subsurface minimum in mind.  Needs mod for other profile shapes.
+        idx = find(profile_value < target_isopleth, 1);  % **NOTE*** This was written with a subsurface minimum in mind.  Needs mod for other profile shapes.
 
         if ~isempty(idx)
             isopleth_depth(q,r) = profile_depth(idx);
