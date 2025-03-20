@@ -89,7 +89,7 @@ end; %Close loop for years
 o2_isopleth_depth_2mlpl_std_anom = calculate_std_anomaly(o2_isopleth_depth_2mlpl);
 o2_isopleth_depth_2mlpl_anom = calculate_anomaly(o2_isopleth_depth_2mlpl);
 
-% Calculete some anomalies, in case that ends up being useful
+% Calculate some anomalies, in case that ends up being useful
 subset_latitude = lat(lat_loc_min:lat_loc_max);
 subset_longitude = lon(lon_loc_min:lon_loc_max);
 subset_o2_2mlpl_depth_1993_2024 = o2_isopleth_depth_2mlpl;
