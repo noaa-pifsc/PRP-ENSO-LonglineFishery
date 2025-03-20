@@ -25,36 +25,49 @@ library(here)
 ONI_full <- read_csv(here("ClimateIndices", "ONI_full.csv"))
 
 # Round data to the tenth of a degree
+# This is to match CPC's phase identifications
 ONI_rounded <- round(ONI_full$ANOM, digits = 1)
 
-# Identifying El Niños and La Niñas, based on the criterion that they persist for at least 5 consecutive seasons
+# Identify El Niños and La Niñas, based on the criterion that they persist for at least 5 consecutive seasons:
+# Index values in each phase
 ElNino_idx = which(ONI_rounded >= 0.5);
 LaNina_idx = which(ONI_rounded <= -0.5);
 Neutral_idx = which(ONI_rounded > -0.5 & ONI_rounded < 0.5);
+
+#Create empty arrays for each phase
 ElNino <- array(0, dim = c(length(ONI_rounded), 3))
 LaNina <- array(0, dim = c(length(ONI_rounded), 3))
 Neutral <- array(0, dim = c(length(ONI_rounded), 3))
 
+# Fill the first column of each array with their respective ONI values
 ElNino[ElNino_idx,1] = ONI_rounded[ElNino_idx]
 LaNina[LaNina_idx,1] = ONI_rounded[LaNina_idx]
 Neutral[,1] = NA # to avoid omitting months with ONI = 0
 Neutral[Neutral_idx,1] = ONI_rounded[Neutral_idx]
 
+### Counter
+# If the first value in the ElNino array is potentially an El Nino
+# fill the second and third columns with the number one
 if (ElNino[1,1] > 0) {
   ElNino[1,2] = 1
   ElNino[1,3] = 1
 }
 
+# Same but for La Nina
 if (LaNina[1,1] < 0) {
   LaNina[1,2] = 1
   LaNina[1,3] = 1
 }
 
+# And neutral 
 if (!is.na(Neutral[1,1])) {
   Neutral[1,2] = 1
   Neutral[1,3] = 1
 }
 
+# Loop through the remaining months
+# For ones that meet the threshold, put a 1 in the second column, 
+# and increase the running counter in the third column
 for (r in seq(2, length(ONI_rounded), 1)) {
   if (ElNino[r,1] > 0) {
     ElNino[r,2] = 1
@@ -72,7 +85,9 @@ for (r in seq(2, length(ONI_rounded), 1)) {
   }
 }
 
-
+# Filter out "phases" that don't meet the persistence criterion because they 
+# don't last for at least 5 months.  So, find rows where the max continuous
+# counter value is <= 4
 for (l in seq(4, 1, -1)) {
   for (r in seq(2, length(ONI_rounded), 1)) {
     if (ElNino[r,3] == 0 && ElNino[r - 1,3] <= l) {
@@ -87,6 +102,8 @@ for (l in seq(4, 1, -1)) {
   }
 }
 
+# This handles the counter for the final time step, since there's no subsequent
+# month to relate it to
 if (ElNino[dim(ONI_full)[1],2] == 1 & ElNino[dim(ONI_full)[1],3] == 1) {
   ElNino[dim(ONI_full)[1],3] = 0
 }
@@ -97,6 +114,7 @@ if (Neutral[dim(ONI_full)[1],2] == 1 & Neutral[dim(ONI_full)[1],3] == 1) {
   Neutral[dim(ONI_full)[1],3] = 0
 }
 
+# Replaces ONI with NA for months that don't meet the persistence criterion.
 pos_idx = which(ElNino[,3] == 0)
 ElNino[pos_idx,1] = NA
 neg_idx = which(LaNina[,3] == 0)
