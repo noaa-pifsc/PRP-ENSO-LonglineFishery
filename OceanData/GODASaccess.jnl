@@ -10,7 +10,7 @@ use http://apdrc.soest.hawaii.edu:80/dods/public_data/Reanalysis_Data/GODAS/mont
 ! l = 540 is Dec 2024
 ! k = 31 is 949 m (next closest to 1000 is 1193)
 ! We'll also convert from Kelvin to deg C
-LET GODAS = POTDSL[x = 180:130W, y = 10N:30N, k = 1:31, l = 181:540] - 273.15
+LET GODAS = POTDSL[x = 180:130W, y = 10N:40N, k = 1:31, l = 181:540] - 273.15
 
 ! Save file (note: the resulting file is large)
 LIST/format=cdf/file=GODAS.nc GODAS
