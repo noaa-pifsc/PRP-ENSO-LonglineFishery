@@ -2,6 +2,11 @@
 ! subset GODAS data to our spatiotemporal domain of interest and
 ! save it to a netCDF file.
 
+! Ensure we're not interpolating between depths
+! Not sure if this matters when using k, but it can't hurt.
+! https://ferret.pmel.noaa.gov/Ferret/documentation/users-guide/commands-reference/SET#_VPINDEXENTRY_1696
+CANCEL MODE INTERPOLATE
+
 ! Access data
 use http://apdrc.soest.hawaii.edu:80/dods/public_data/Reanalysis_Data/GODAS/monthly/potmp
 
@@ -13,6 +18,7 @@ use http://apdrc.soest.hawaii.edu:80/dods/public_data/Reanalysis_Data/GODAS/mont
 LET GODAS = POTDSL[x = 180:130W, y = 10N:40N, k = 1:31, l = 181:540] - 273.15
 
 ! Save file (note: the resulting file is large)
-LIST/format=cdf/file=GODAS.nc GODAS
+! Heads up: CLOBBER allows overwriting
+LIST/CLOBBER/format=cdf/file=GODAS.nc GODAS
 
    
