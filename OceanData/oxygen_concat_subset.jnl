@@ -1,0 +1,16 @@
+! The purose of this script is to create a time series of the Copernicus oxygen data for our area of interest.
+! Note that the path is for a Mac and may be different for other operating systems
+! To get here on my computer, I went to smb://picclownfish/ and selected CLIMATE
+
+! Ensure we're not interpolating
+CANCEL MODE INTERPOLATE
+
+! Increase memory
+SET MEMORY/SIZE = 100
+
+! We want data from the upper 1000 m of the water column
+! k = 46: 947.4 m
+! k = 47: 1045.9 m
+! Selecting k = 1:47
+
+REPEAT/RANGE=1995:2024:1/NAME=a (LET file_list_`a` = SPAWN( "ls -1 /Volumes/CLIMATE/historical_reanalyses/Copernicus_GLOBAL_REANALYSIS_BIO_001_029/`a`/*.nc"); TSERIES all_times_`a` = file_list_`a`; LET oxygen_`a` = O2[x=180:130W, y=10:40N, k=1:47, l=1:12]; list/CLOBBER/FILE="Oxygen/oxygen_`a`.nc"/FORMAT=cdf oxygen_`a`)
