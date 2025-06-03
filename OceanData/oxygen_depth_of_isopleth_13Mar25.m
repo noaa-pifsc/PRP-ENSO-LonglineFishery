@@ -12,15 +12,17 @@
 
 % Set the director that is being used
 % folder_name = 'D:\Historical_datasets\Copernicus_GLOBAL_MULTIYEAR_BGC_001_029'; %Data are from 1993 through 2024
-folder_name = 'Z:\historical_reanalyses\Copernicus_GLOBAL_REANALYSIS_BIO_001_029'; %Data are from 1993 through 2024
+% folder_name = 'Z:\historical_reanalyses\Copernicus_GLOBAL_REANALYSIS_BIO_001_029'; %Data are from 1993 through 2024
+folder_name = '/Volumes/CLIMATE/historical_reanalyses/Copernicus_GLOBAL_REANALYSIS_BIO_001_029';
 year_folders = dir(folder_name); %This is a struct with the information about the directories by year
 
 %extract some of the key paramerters from one file, here just using the
 %most recent December
-filename = [folder_name '\' year_folders(end).name '\' 'mercatorfreebiorys2v4_global_mean_' year_folders(end).name '12.nc'];
-lat = nc_varget(filename,'latitude');
-lon = nc_varget(filename,'longitude');
-depth = nc_varget(filename,'depth');
+% filename = [folder_name '\' year_folders(end).name '\' 'mercatorfreebiorys2v4_global_mean_' year_folders(end).name '12.nc'];
+filename = [folder_name '/' year_folders(end).name '/' 'mercatorfreebiorys2v4_global_mean_' year_folders(end).name '12.nc'];
+lat = ncread(filename,'latitude'); % nc_varget(filename,'latitude');
+lon = ncread(filename,'longitude'); % nc_varget(filename,'longitude');
+depth = ncread(filename,'depth'); % nc_varget(filename,'depth');
 % you can use ncread in place of nc_varget if you do not have SNCTOOLS (https://mexcdf.sourceforge.net/) installed.
 % lat = ncread(filename,'latitude');
 % lon = ncread(filename,'longitude');
@@ -55,24 +57,27 @@ valid_folders = [];
 for i = 1:length(year_folders)
     if str2num(year_folders(i).name)>1
         valid_folders = [valid_folders i];
-    end;
-end;
+    end
+end
 
 clear o2
 o2_isopleth_depth = NaN([length(valid_folders)*12 length(lat_loc_min:lat_loc_max) length(lon_loc_min:lon_loc_max)]); % create a matrix of NaN of appropriate dimensions
 o2_isopleth_depth_2mlpl = o2_isopleth_depth;
 for i = 1:length(valid_folders)
     clear files_list
-    files_list = dir([folder_name '\' year_folders(valid_folders(i)).name '\*.nc']); % list the files in that directory.  Should be 12 per year.
+    % files_list = dir([folder_name '\' year_folders(valid_folders(i)).name '\*.nc']); % list the files in that directory.  Should be 12 per year.
+    files_list = dir([folder_name '/' year_folders(valid_folders(i)).name '/*.nc']); % list the files in that directory.  Should be 12 per year.
     for j = 1:length(files_list)
-        o2 = nc_varget([files_list(j).folder '\' files_list(j).name],'o2',[0 0 lat_loc_min-1 lon_loc_min-1],[1 depth_max_loc length(lat_loc_min:lat_loc_max) length(lon_loc_min:lon_loc_max)]);
+        % o2 = nc_varget([files_list(j).folder '\' files_list(j).name],'o2',[0 0 lat_loc_min-1 lon_loc_min-1],[1 depth_max_loc length(lat_loc_min:lat_loc_max) length(lon_loc_min:lon_loc_max)]);
         % If SNCTOOLS (https://mexcdf.sourceforge.net/) plugin, can use ncread coupled with permute (next two lines) in place of the line above
         % o2 = ncread([files_list(j).folder '\' files_list(j).name],'o2',flip([1 1 lat_loc_min lon_loc_min]),flip([1 depth_max_loc length(lat_loc_min:lat_loc_max) length(lon_loc_min:lon_loc_max)]));
-        % o2 = permute(o2,[3 2 1]); % changes the order of the dimensions to [depth lat lon]
+        o2 = ncread([files_list(j).folder '/' files_list(j).name],'o2',flip([1 1 lat_loc_min lon_loc_min]),flip([1 depth_max_loc length(lat_loc_min:lat_loc_max) length(lon_loc_min:lon_loc_max)]));
+        o2 = permute(o2,[3 2 1]); % changes the order of the dimensions to [depth lat lon]
         o2_isopleth_depth_2mlpl((i-1)*12+j,:,:) = find_isopleth_depth(squeeze(o2),target_isopleth,depth_max,depth,depth_res_interp); % it's i-1 because the first year is 1 and we want the count to be 0.
-        disp([files_list(j).folder '\' files_list(j).name]); % print out where we are in the processing
-    end; %Close loop for months
-end; %Close loop for years
+        % disp([files_list(j).folder '\' files_list(j).name]); % print out where we are in the processing
+        disp([files_list(j).folder '/' files_list(j).name]); % print out where we are in the processing
+    end %Close loop for months
+end %Close loop for years
 [m o p] = size(o2_isopleth_depth_2mlpl);
 
 % animation of the propery
@@ -85,30 +90,31 @@ end; %Close loop for years
 %     pause(0.1);hold off;
 % end;
 
-[o2_isopleth_depth_2mlpl_seasonal_clim, o2_isopleth_depth_2mlpl_seasonal_std] = calculate_climatology(o2_isopleth_depth_2mlpl);
-o2_isopleth_depth_2mlpl_std_anom = calculate_std_anomaly(o2_isopleth_depth_2mlpl);
-o2_isopleth_depth_2mlpl_anom = calculate_anomaly(o2_isopleth_depth_2mlpl);
+% [o2_isopleth_depth_2mlpl_seasonal_clim, o2_isopleth_depth_2mlpl_seasonal_std] = calculate_climatology(o2_isopleth_depth_2mlpl);
+% o2_isopleth_depth_2mlpl_std_anom = calculate_std_anomaly(o2_isopleth_depth_2mlpl);
+% o2_isopleth_depth_2mlpl_anom = calculate_anomaly(o2_isopleth_depth_2mlpl);
 
 % Calculate some anomalies, in case that ends up being useful
-subset_latitude = lat(lat_loc_min:lat_loc_max);
-subset_longitude = lon(lon_loc_min:lon_loc_max);
-subset_o2_2mlpl_depth_1993_2024 = o2_isopleth_depth_2mlpl;
-subset_o2_2mlpl_depth_1993_2024_anom = o2_isopleth_depth_2mlpl_anom;
-subset_o2_2mlpl_depth_1993_2024_std_anom = o2_isopleth_depth_2mlpl_std_anom;
+% subset_latitude = lat(lat_loc_min:lat_loc_max);
+% subset_longitude = lon(lon_loc_min:lon_loc_max);
+% subset_o2_2mlpl_depth_1993_2024 = o2_isopleth_depth_2mlpl;
+% subset_o2_2mlpl_depth_1993_2024_anom = o2_isopleth_depth_2mlpl_anom;
+% subset_o2_2mlpl_depth_1993_2024_std_anom = o2_isopleth_depth_2mlpl_std_anom;
 
 % Ok, and then save these data.  Save all as a .mat file
-save('subset_o2_isopleth_data_1000m_MAX_1993_2024.mat','subset_latitude','subset_longitude','subset_o2_2mlpl_depth_1993_2024','subset_o2_2mlpl_depth_1993_2024_anom','subset_o2_2mlpl_depth_1993_2024_std_anom');
+% save('subset_o2_isopleth_data_1000m_MAX_1993_2024.mat','subset_latitude','subset_longitude','subset_o2_2mlpl_depth_1993_2024','subset_o2_2mlpl_depth_1993_2024_anom','subset_o2_2mlpl_depth_1993_2024_std_anom');
 
 
 % And write a netcdf, at least for the isopleth data themselves
-nc_filename = "O2_2mlpl_depth_qrtdeg.nc";
+% nc_filename = "O2_2mlpl_depth_qrtdeg.nc";
+nc_filename = "O2_2mlpl_depth_qrtdeg_noInterp.nc";
 nccreate(nc_filename,"isopleth_depth","Dimensions",{"longitude",p,"latitude",o,"month",m},"Format","classic"); % necessary to reverse the dimensions here.
 nccreate(nc_filename,"month", "Dimensions", {"month",m});
 nccreate(nc_filename,"latitude", "Dimensions", {"latitude",o});
 nccreate(nc_filename,"longitude", "Dimensions", {"longitude",p});
 ncwrite(nc_filename,"latitude",lat(lat_loc_min:lat_loc_max));
 ncwrite(nc_filename,"longitude",lon(lon_loc_min:lon_loc_max));
-ncwrite(nc_filename,"isopleth_depth",permute(o2_isopleth_depth_2mlpl,[3  2 1]));  % necessary to reverse the dimensions here.
+ncwrite(nc_filename,"isopleth_depth",permute(o2_isopleth_depth_2mlpl,[3 2 1]));  % necessary to reverse the dimensions here.
 ncwrite(nc_filename,"month",1:m);
 ncwriteatt(nc_filename,"longitude","standard_name","longitude");
 ncwriteatt(nc_filename,"longitude","units","Degrees east");
