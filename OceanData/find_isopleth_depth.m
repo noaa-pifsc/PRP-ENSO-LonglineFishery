@@ -8,21 +8,26 @@ isopleth_depth = NaN(o, p); % Preallocate output
 
 for q = 1:o
     for r = 1:p
-        profile_depth = 1:depth_res_interp:depth_max;
-        % ***NOTE*** This line below uses a linear interpolation between model levels.  Could consider using something else.
-        profile_value = interp1(depth(1:depth_max_loc), squeeze(property_3d_matrix(:,q,r)), profile_depth, 'linear', NaN); % Handle extrapolation
-
-        % Ensure we have valid data before proceeding
-        if all(isnan(profile_value))
-            isopleth_depth(q,r) = NaN; % No data available
-            continue;
-        end
+        % profile_depth = 1:depth_res_interp:depth_max;
+        % % ***NOTE*** This line below uses a linear interpolation between model levels.  Could consider using something else.
+        % profile_value = interp1(depth(1:depth_max_loc), squeeze(property_3d_matrix(:,q,r)), profile_depth, 'linear', NaN); % Handle extrapolation
+        % 
+        % % Ensure we have valid data before proceeding
+        % if all(isnan(profile_value))
+        %     isopleth_depth(q,r) = NaN; % No data available
+        %     continue;
+        % end
         
         % Find the first depth where the interpolated value drops below the isopleth threshold
-        idx = find(profile_value < target_isopleth, 1);  % **NOTE*** This was written with a subsurface minimum in mind.  Needs mod for other profile shapes.
+        % idx = find(profile_value < target_isopleth, 1);  % **NOTE*** This was written with a subsurface minimum in mind.  Needs mod for other profile shapes.
+        raw_profile = squeeze(property_3d_matrix(:,q,r));
+        idx = find(raw_profile >= target_isopleth);  
 
         if ~isempty(idx)
-            isopleth_depth(q,r) = profile_depth(idx);
+            % isopleth_depth(q,r) = profile_depth(idx);
+            isopleth_depth(q,r) = depth(max((idx)));
+        elseif all(isnan(raw_profile))
+            isopleth_depth(q,r) = NaN;
         else
             isopleth_depth(q,r) = depth_max; % No crossing found, assign max depth
         end
