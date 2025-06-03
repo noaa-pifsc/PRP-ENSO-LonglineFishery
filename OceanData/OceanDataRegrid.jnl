@@ -1,0 +1,35 @@
+! The purpose of this script is to regrid the GODAS and GLORYS data to a common 1-deg x 1-deg resolution grid.  This grid can then be used for the fishery-dependent data.
+
+CANCEL MODEL INTERPOLATE
+
+! GLORYS resolution: 0.25-deg centered on 0:0.25:...
+! GODAS resolution:
+!   Longitude is 1-deg centered on half-degrees
+!   Latitude is 0.33-deg
+
+! Our new grid will center on half-degrees, with grid edges at whole degrees.
+
+! Define grid
+DEFINE AXIS/X=180.5W:130.5W:1/UNIT=DEGREE xlon
+DEFINE AXIS/Y=10.5N:39.5N:1/UNIT=DEGREE ylat
+DEFINE GRID/X=xlon/Y=ylat commongrid
+
+! Regrid using area-weighted averaging
+! This approach is easy to change to linear, nearest neighbor, etc. 
+! See options at: https://ferret.pmel.noaa.gov/Ferret/documentation/users-guide/Grids-Regions/GRIDS
+
+! GLORYS data
+! When we do this, we're going to restrict ourselves to 1995–2024, so that everything has equal time steps
+use O2_2mlpl_depth_qrtdeg_noInterp.nc
+LET GLORYS_O2_2mlpl = ISOPLETH_DEPTH[l=25:384]
+LET GLORYS_O2_2mlpl_regrid = GLORYS_O2_2mlpl[G=commongrid@AVE]
+LIST/FORMAT=cdf/FILE=O2_2mlpl_depth_1deg_noInterp.nc GLORYS_O2_2mlpl_regrid
+
+cancel data/all
+cancel var/all
+
+! GODAS data
+use GODAS.nc
+let GODAS_regrid = GODAS[G=commongrid@AVE]
+LIST/FORMAT=cdf/FILE=GODAS_1deg.nc GODAS_regrid
+
