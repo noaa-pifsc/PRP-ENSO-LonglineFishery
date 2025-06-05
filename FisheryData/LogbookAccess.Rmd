@@ -87,8 +87,9 @@ str(logbookHDR)
 # Save dataset (the internet appears to unanimously agree that rds is superior to csv in terms of speed, memory, metadata preservation, and more)
 saveRDS(object = logbookHDR, file = here("FisheryData", "LogbookHDR.rds"))
 
-# Clear query results
+# Clear query results & clean up
 dbClearResult(res)
+rm(sn_idx, snl)
 
 # Query the database - detail data
 res <- dbSendQuery(con, paste("SELECT HDR_TRIPNUM, HDR_SERIALNUM, ENGLISH_NAME, SPECIES, NUMKEPT, NUMRELEASED, FLEET, BH_YR, BH_MON, PERMITNUM, HOOKSSET, MAXHKSFLT, RSCH_EXPMTL_CODE",
@@ -101,6 +102,12 @@ logbookDETAIL <- dbFetch(res)
 dim(logbookDETAIL)
 head(logbookDETAIL)
 str(logbookDETAIL)  # It looks like a lot of the numeric fields are read in as characters
+
+# Some of the early serial numbers begin with "LL" if there was an observer on board and no serial number was assigned
+# This affects trips from 1994-1997
+sn_idx <- str_starts(logbookDETAIL$HDR_SERIALNUM, "LL")
+snl <- str_length(logbookDETAIL$HDR_SERIALNUM[sn_idx])
+logbookDETAIL$HDR_SERIALNUM[sn_idx] <- str_sub(logbookDETAIL$HDR_SERIALNUM[sn_idx], 3, snl)
 
 # Convert character fields to numeric
 logbookDETAIL <- logbookDETAIL %>% 
