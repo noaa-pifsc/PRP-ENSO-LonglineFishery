@@ -72,6 +72,12 @@ dim(logbookHDR)
 head(logbookHDR)
 str(logbookHDR)  # It looks like a lot of the numeric fields are read in as characters
 
+# Some of the early serial numbers begin with "LL" if there was an observer on board and no serial number was assigned
+# This affects trips from 1994-1997
+sn_idx <- str_starts(logbookHDR$SERIALNUM, "LL")
+snl <- str_length(logbookHDR$SERIALNUM[sn_idx])
+logbookHDR$SERIALNUM[sn_idx] <- str_sub(logbookHDR$SERIALNUM[sn_idx], 3, snl)
+
 # Convert character fields to numeric
 logbookHDR <- logbookHDR %>% 
   mutate_at(c('TRIPNUM', 'PERMITNUM', 'BAIT', 'HOOKSSET', 'MINHKSFLT', 'MAXHKSFLT', 'BHLATDEG', 'BHLATMIN', 'BHLONGDEG', 'BHLONGMIN', 'SERIALNUM'), 
