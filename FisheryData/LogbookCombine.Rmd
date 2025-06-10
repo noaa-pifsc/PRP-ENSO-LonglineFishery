@@ -1,0 +1,145 @@
+---
+title: "LogbookCombine"
+---
+
+# Purpose
+This script combines the logbook HDR and DETAIL data into a single set-level 
+dataset.  The HDR data are per set.  The DETAIL data are per fish.  This script
+sums the number of each species kept and released for each set (the comparison
+of kept vs. released is just for my own personal curiosity).  
+
+All this happens after sets are limited to deep-sets only: >= 15 hooks per float.
+
+```{r}
+# Set up the environment
+library(tidyverse, quietly = TRUE)
+library(here)
+```
+
+```{r}
+# Load the data
+HDR <- readRDS(here("FisheryData", "LogbookHDR.rds"))
+DETAIL <- readRDS(here("FisheryData", "LogbookDETAIL.rds"))
+```
+
+```{r}
+# Remove records that are missing data that we need
+# First remove the RSCH_EXPMTL_CODE columns, because we specifically selected ones that were empty
+HDR <- HDR |>
+  mutate(RSCH_EXPMTL_CODE = NULL)
+DETAIL <- DETAIL |>
+  mutate(RSCH_EXPMTL_CODE = NULL)
+
+HDR_noNA <- na.omit(HDR)
+DETAIL_noNA <- na.omit(DETAIL)
+
+# Clean up
+rm(HDR, DETAIL)
+```
+
+```{r}
+# Filter to only deep sets
+HDR_deep <- HDR_noNA |>
+  filter(MINHKSFLT >= 15 & MAXHKSFLT >= 15)
+
+DETAIL_deep <- DETAIL_noNA |>
+  filter(MAXHKSFLT >= 15)
+
+# Clean up
+rm(HDR_noNA, DETAIL_noNA)
+```
+
+```{r}
+# We're also going to combine the deg-min location info into decimal degrees
+HDR_deep <- HDR_deep |>
+  mutate(BH_LAT = BHLATDEG + BHLATMIN/60,
+         BH_LON = BHLONGDEG + BHLONGMIN/60)
+
+# And get rid of the old (annoying) columns
+# We could probably do this together with the previous step
+HDR_deep <- HDR_deep |>
+  mutate(BHLATDEG = NULL,
+         BHLATMIN = NULL,
+         BHLONGDEG = NULL,
+         BHLONGMIN = NULL)
+```
+
+```{r}
+# Identify all the unique species caught
+# Thankfully, this is logbook data so the list is short compared to observer data
+# Also, order the species numbers
+species_list <- sort(unique(DETAIL_deep$SPECIES))
+
+# Okay, well, "short" was optimistic.  So.
+# We'll just pull out our five species of interest.  
+# On another day, when a clear need arises, this can be added to to include additional species
+# BIGEYE TUNA: 16
+# MAHIMAHI: 11
+# YELLOWFIN TUNA: 17
+# SWORDFISH: 6
+# POMFRET: 21
+```
+
+```{r}
+# Create our new dataset, including adding new column
+DeepSets <- HDR_deep |>
+  mutate(BIGEYE_KEPT = as.numeric(NA), 
+         BIGEYE_RELEASED = as.numeric(NA),
+         MAHI_KEPT = as.numeric(NA),
+         MAHI_RELEASED = as.numeric(NA),
+         YELLOWFIN_KEPT = as.numeric(NA),
+         YELLOWFIN_RELEASED = as.numeric(NA),
+         SWORDFISH_KEPT = as.numeric(NA),
+         SWORDFISH_RELEASED = as.numeric(NA),
+         POMFRET_KEPT = as.numeric(NA), 
+         POMFRET_RELEASED = as.numeric(NA))
+
+# Loop through all the sets
+# This is agonizingly slow, but it's the least-slow approach I could make work
+for (s in seq(1, dim(HDR_deep)[1], 1)) {
+  # Match the identifying details, some of which restart each year, sigh...
+  fish_idx <- which(DETAIL_deep$HDR_SERIALNUM == DeepSets$SERIALNUM[s] & 
+                    DETAIL_deep$HDR_TRIPNUM == DeepSets$TRIPNUM[s] &
+                    DETAIL_deep$PERMITNUM == DeepSets$PERMITNUM[s] & 
+                    DETAIL_deep$BH_YR == DeepSets$BH_YR[s] & 
+                    DETAIL_deep$BH_MON == DeepSets$BH_MON[s] &
+                    DETAIL_deep$HOOKSSET == DeepSets$HOOKSSET[s] &
+                    DETAIL_deep$MAXHKSFLT == DeepSets$MAXHKSFLT[s])
+  fish_hold <- DETAIL_deep[fish_idx,]
+  
+  # Sum number kept and released for each species
+  bigeye_idx <- which(fish_hold$SPECIES == 16)
+  mahi_idx <- which(fish_hold$SPECIES == 11)
+  yellowfin_idx <- which(fish_hold$SPECIES == 17)
+  swordfish_idx <- which(fish_hold$SPECIES == 6)
+  pomfret_idx <- which(fish_hold$SPECIES == 21)
+  
+  DeepSets$BIGEYE_KEPT[s] <- sum(fish_hold$NUMKEPT[bigeye_idx])
+  DeepSets$MAHI_KEPT[s] <- sum(fish_hold$NUMKEPT[mahi_idx])
+  DeepSets$YELLOWFIN_KEPT[s] <- sum(fish_hold$NUMKEPT[yellowfin_idx])
+  DeepSets$SWORDFISH_KEPT[s] <- sum(fish_hold$NUMKEPT[swordfish_idx])
+  DeepSets$POMFRET_KEPT[s] <- sum(fish_hold$NUMKEPT[pomfret_idx])
+  
+  DeepSets$BIGEYE_RELEASED[s] <- sum(fish_hold$NUMRELEASED[bigeye_idx])
+  DeepSets$MAHI_RELEASED[s] <- sum(fish_hold$NUMRELEASED[mahi_idx])
+  DeepSets$YELLOWFIN_RELEASED[s] <- sum(fish_hold$NUMRELEASED[yellowfin_idx])
+  DeepSets$SWORDFISH_RELEASED[s] <- sum(fish_hold$NUMRELEASED[swordfish_idx])
+  DeepSets$POMFRET_RELEASED[s] <- sum(fish_hold$NUMRELEASED[pomfret_idx])
+  
+  # Tidy up
+  rm(fish_hold)
+  rm(list=ls(pattern="_idx"))
+}
+rm(s)
+```
+
+```{r}
+# Save output in two formats for different platforms
+saveRDS(object = DeepSets, file = here("FisheryData", "DeepSets.rds"))
+write_csv(DeepSets, file = here("FisheryData", "DeepSets.csv"))
+```
+
+
+
+
+
