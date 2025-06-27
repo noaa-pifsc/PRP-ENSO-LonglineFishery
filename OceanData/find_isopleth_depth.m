@@ -21,11 +21,18 @@ for q = 1:o
         % Find the first depth where the interpolated value drops below the isopleth threshold
         % idx = find(profile_value < target_isopleth, 1);  % **NOTE*** This was written with a subsurface minimum in mind.  Needs mod for other profile shapes.
         raw_profile = squeeze(property_3d_matrix(:,q,r));
-        idx = find(raw_profile >= target_isopleth);  
 
+        % Look for values less than target oxygen concentration to account
+        % for subsurface oxygen minimum zones.
+        idx = find(raw_profile(1:depth_max_loc) < target_isopleth);  
+
+        % If there is a subsurface oxygen minimum, pick the depth above
+        % where it's detected (i.e., deepest depth >= target)
         if ~isempty(idx)
-            % isopleth_depth(q,r) = profile_depth(idx);
-            isopleth_depth(q,r) = depth(max((idx)));
+            isopleth_depth(q,r) = depth(min(idx) - 1);
+
+        % If the entire profile is missing (e.g., because there's an
+        % island), identify as NaN
         elseif all(isnan(raw_profile))
             isopleth_depth(q,r) = NaN;
         else
