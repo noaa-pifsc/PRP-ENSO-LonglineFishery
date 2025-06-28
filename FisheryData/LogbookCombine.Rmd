@@ -84,28 +84,20 @@ species_list <- sort(unique(DETAIL_deep$SPECIES))
 
 ```{r}
 # combine HDR and DETAIL
-
-# first, make detail "wide" instead of "long"
-# Pull out all the kept fish and sum
-testKept <- DETAIL_deep %>% 
+library(data.table)
+# first, make detail "wide" instead of "long" for the NUMKEPT and NUMRELEASED columns for our five species
+# This is easiest using data.table 
+DETAIL_wide <- DETAIL_deep %>% 
+  as.data.table() %>% 
   filter(SPECIES %in% c(16,11,17,6,21)) %>% 
-  dcast(formula = HDR_SERIALNUM + HDR_TRIPNUM + PERMITNUM + BH_YR + BH_MON + HOOKSSET + MAXHKSFLT ~ SPECIES, value.var='NUMKEPT', fun.aggregate = sum) %>% 
-  rename(BIGEYE_KEPT = '16', MAHI_KEPT = '11',  YELLOWFIN_KEPT = '17', SWORDFISH_KEPT = '6', POMFRET_KEPT = '21')
-
-# Pull out all released fish and sum
-testReleased <- DETAIL_deep %>% 
-  filter(SPECIES %in% c(16,11,17,6,21)) %>% 
-  dcast(formula = HDR_SERIALNUM + HDR_TRIPNUM + PERMITNUM + BH_YR + BH_MON + HOOKSSET + MAXHKSFLT ~ SPECIES, value.var='NUMRELEASED', fun.aggregate = sum) %>% 
-  rename(BIGEYE_RELEASED = '16', MAHI_RELEASED = '11', YELLOWFIN_RELEASED = '17', SWORDFISH_RELEASED = '6', POMFRET_RELEASED = '21')
-
-# merge released and kept fish into one dataset
-DETAIL_wide <- testKept %>% 
-  full_join(testReleased, by=c('HDR_SERIALNUM', 'HDR_TRIPNUM', 'PERMITNUM', 'BH_YR', 'BH_MON', 'HOOKSSET', 'MAXHKSFLT')) %>% 
+  dcast(formula = HDR_SERIALNUM + HDR_TRIPNUM + PERMITNUM + BH_YR + BH_MON + HOOKSSET + MAXHKSFLT ~ SPECIES, value.var=c('NUMKEPT', 'NUMRELEASED'), fun.aggregate = sum) %>% 
   rename(SERIALNUM=HDR_SERIALNUM, TRIPNUM=HDR_TRIPNUM)
 
 # Combine the kept&released data with the HDR data
-DeepSets <- HDR_deep %>% 
-  full_join(DETAIL_wide, by=c('SERIALNUM', 'TRIPNUM', 'PERMITNUM', 'BH_YR', 'BH_MON', 'HOOKSSET', 'MAXHKSFLT'))
+DeepSets <- merge.data.table(as.data.table(HDR_deep), DETAIL_wide)
+# Rename columns (they are ordered by increasing number!). Take care here to make sure you are renaming them correctly
+setnames(DeepSets, c(13:22), paste(rep(c('SWORDFISH', 'MAHI', 'BIGEYE', 'YELLOWFIN', 'POMFRET'), 2), rep(c('KEPT', 'RELEASED'), each=5), sep='_'))
+DeepSets <- as.data.frame(DeepSets)
 
 ```
 
