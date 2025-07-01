@@ -140,10 +140,6 @@ netcdf.putAtt(ncid1,varid_lat1,'standard_name','Latitude');
 netcdf.putAtt(ncid1,varid_lat1,'units','Degrees North');
 netcdf.putAtt(ncid1,varid_lat1,'reference','Grid Center');
 
-% netcdf.putAtt(ncid1,varid_z1,'standard_name','Depth');
-% netcdf.putAtt(ncid1,varid_z1,'units','meters');
-% netcdf.putAtt(ncid1,varid_z1,'note','Data do not have a depth dimension')
-
 netcdf.putAtt(ncid1,varid_mon1,'standard_name','Month');
 netcdf.putAtt(ncid1,varid_mon1,'units','Months Since Dec 1994');
 
