@@ -156,8 +156,6 @@ netcdf.endDef(ncid1)
 % Put the data in the file
 netcdf.putVar(ncid1,varid_lon1,lon_T);
 netcdf.putVar(ncid1,varid_lat1,lat_T);
-% netcdf.putVar(ncid1,varid_z1,0);
-% netcdf.putVar(ncid1,varid_mon1,1:1:size(C,4));
 netcdf.putVar(ncid1,varid_mon1,(time_O-24)); % time since Dec 1994 not 1992
 netcdf.putVar(ncid1,varid_C,C);
 
