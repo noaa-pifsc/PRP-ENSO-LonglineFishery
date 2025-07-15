@@ -40,10 +40,10 @@ rm(HDR, DETAIL)
 ```{r}
 # Filter to only deep sets
 HDR_deep <- HDR_noNA |>
-  filter(MINHKSFLT >= 15)
+  filter(MINHKSFLT >= 15 | MAXHKSFLT >= 15)
 
 DETAIL_deep <- DETAIL_noNA |>
-  filter(MAXHKSFLT >= 15) %>% 
+  # filter(MAXHKSFLT >= 15) %>% # Taking out this condition because it's often 0 in early 1995
   mutate(HOOKSSET = as.numeric(HOOKSSET)) # for some reason HOOKSSET here is a character which causes issues later on
 
 # Clean up
@@ -82,7 +82,8 @@ library(data.table)
 DETAIL_wide <- DETAIL_deep %>% 
   as.data.table() %>% 
   filter(SPECIES %in% c(16,11,17,6,21)) %>% 
-  dcast(formula = HDR_SERIALNUM + HDR_TRIPNUM + PERMITNUM + BH_YR + BH_MON + HOOKSSET + MAXHKSFLT ~ SPECIES, value.var=c('NUMKEPT', 'NUMRELEASED'), fun.aggregate = sum) %>% 
+  dcast(formula = HDR_SERIALNUM + HDR_TRIPNUM + PERMITNUM + BH_YR + BH_MON + HOOKSSET ~ SPECIES, value.var=c('NUMKEPT', 'NUMRELEASED'), fun.aggregate = sum)  %>% 
+  # dcast(formula = HDR_SERIALNUM + HDR_TRIPNUM + PERMITNUM + BH_YR + BH_MON + HOOKSSET + MAXHKSFLT ~ SPECIES, value.var=c('NUMKEPT', 'NUMRELEASED'), fun.aggregate = sum) %>% 
   rename(SERIALNUM=HDR_SERIALNUM, TRIPNUM=HDR_TRIPNUM)
 
 # Combine the kept&released data with the HDR data
@@ -90,13 +91,12 @@ DeepSets <- merge.data.table(as.data.table(HDR_deep), DETAIL_wide)
 # Rename columns (they are ordered by increasing number!). Take care here to make sure you are renaming them correctly
 setnames(DeepSets, c(13:22), paste(rep(c('SWORDFISH', 'MAHI', 'BIGEYE', 'YELLOWFIN', 'POMFRET'), 2), rep(c('KEPT', 'RELEASED'), each=5), sep='_'))
 DeepSets <- as.data.frame(DeepSets)
-
 ```
 
 ```{r}
 # Save output in two formats for different platforms
-saveRDS(object = DeepSets, file = here("FisheryData", "DeepSets.rds"))
-write_csv(DeepSets, file = here("FisheryData", "DeepSets.csv"))
+saveRDS(object = DeepSets, file = here("FisheryData", "DeepSets_noMaxHksFlt.rds"))
+write_csv(DeepSets, file = here("FisheryData", "DeepSets_noMaxHksFlt.csv"))
 ```
 
 
