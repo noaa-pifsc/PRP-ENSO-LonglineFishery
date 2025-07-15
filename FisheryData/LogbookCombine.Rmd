@@ -94,6 +94,12 @@ DeepSets <- as.data.frame(DeepSets)
 ```
 
 ```{r}
+# Double-check that we're not including any shallow sets
+maybe_shallow_minhks <- which(DeepSets$MINHKSFLT > 0 & DeepSets$MINHKSFLT < 15) # 31 entries
+maybe_shallow_maxhks <- which(DeepSets$MAXHKSFLT > 0 & DeepSets$MAXHKSFLT < 15) # empty
+```
+
+```{r}
 # Save output in two formats for different platforms
 saveRDS(object = DeepSets, file = here("FisheryData", "DeepSets_noMaxHksFlt.rds"))
 write_csv(DeepSets, file = here("FisheryData", "DeepSets_noMaxHksFlt.csv"))
