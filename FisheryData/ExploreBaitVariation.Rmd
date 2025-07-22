@@ -1,0 +1,141 @@
+---
+title: "ExploreBaitVariation"
+---
+
+# Purpose
+The purpose of this script is to look at how bait varies over time,
+to get a sense of how it might be incorporated into the BRTs.
+
+```{r}
+# Set up environment
+library(tidyverse)
+library(here)
+library(reshape)
+library(zoo)
+```
+
+```{r}
+# Load data
+DeepSets <- read_csv(here("FisheryData", "DeepSets.csv"), show_col_types = FALSE)
+```
+
+```{r}
+# Create a matrix for a heatmap
+# Thanks to https://rpubs.com/lumumba99/1026665 for the example code!
+bait_dist <- matrix(NA, nrow = (2024-1995+1), ncol = 73)
+for (yr in seq(1995, 2024, 1)) {
+  for (bait in seq(1, 73, 1)) {
+    yr_hold <- DeepSets |>
+      filter(BH_YR == yr)
+
+    n <- count(yr_hold, BAIT == bait)
+
+    bait_dist[yr-1994,bait] <- n$n[2] / dim(yr_hold)[1]
+  }
+}
+
+rownames(bait_dist) <- seq(1995, 2024, 1)
+colnames(bait_dist) <- seq(1, 73, 1)
+
+bait_melt <- melt(bait_dist)
+ggp <- ggplot(bait_melt, aes(X1, X2)) + 
+  geom_tile(aes(fill = value))
+
+# pdf(here("FisheryData", "AnnualBaitDistribution.pdf"))
+ggp                                                              
+# dev.off()
+
+```
+```{r}
+# Just seeing how the most common bait sum, if they capture most all sets
+common_bait <- bait_dist[,c(1, 10, 51, 58, 72, 73)]
+rowSums(common_bait, na.rm = TRUE)
+```
+
+```{r}
+# Similar to the above, but at a monthly resolution
+# Note: this is slow, but after a few hours of trying to make a chronological 
+# index that could allow combining by month and year sequentially, I decided to 
+# stick with this since we'll likely only need to run in a few times ever.
+bait_dist_mon <- matrix(NA, nrow = (2024-1995+1)*12, ncol = 73)
+c <- 1 # counter
+for (yr in seq(1995, 2024, 1)) {
+  for (mo in seq(1, 12, 1)) {
+   for (bait in seq(1, 73, 1)) {
+     mo_hold <- DeepSets |>
+       filter(BH_YR == yr & BH_MON == mo)
+     
+     n <- count(mo_hold, BAIT == bait)
+     
+     # The size of n depends on whether all values are TRUE
+     if (dim(n)[1] == 1) {
+       bait_match <- which(n[,1] == TRUE)
+       if (length(bait_match) > 0) {
+         # The as.numeric is to get around variables vs. numbers
+         # There is probably a better solution which is escaping me
+         bait_dist_mon[c,bait] <- as.numeric(n[bait_match,2] / dim(mo_hold)[1])
+       }
+     } else {
+       bait_dist_mon[c,bait] <- n$n[2] / dim(mo_hold)[1]
+     }
+   }
+    
+  c <- c + 1 # increment counter
+  }
+}
+
+rownames(bait_dist_mon) <- seq(1, (2024-1995+1)*12, 1)
+colnames(bait_dist_mon) <- seq(1, 73, 1)
+```
+
+```{r}
+# Test creating a factor for bait where the factors are:
+# 1: the combination of sardine and sanma (codes: 10, 51, 58) and
+# 2: other commonly used bait types (codes: 1, 72, 73)
+
+sanma <- rowSums(bait_dist_mon[,c(10, 51, 58)], na.rm = TRUE)
+milkfish <- rowSums(bait_dist_mon[,c(1, 72, 73)], na.rm = TRUE)
+
+# png(here("FisheryData", "PossibleBaitFactors.png"), height=6, width=9, res=300, unit="in")
+plot(1:360, sanma, type = "l", col = "#4b8320", xlim = c(1,360), ylim = c(0,1),
+     ylab = "Proportion of Sets Using Bait Type", xlab = " ", las = 1)
+par(new = TRUE)
+plot(1:360, milkfish, type = "l", col = "#5761c0", xlim = c(1,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1)
+legend(75, 0.6, legend = c('sanma and sardine (codes 10, 52, 58)', 'milkfish and other (codes 1, 72, 73)'), 
+      lty = 1, col = c("#4b8320", "#5761c0"))
+# dev.off()
+```
+
+```{r}
+# Find rows (months) where all bait codes are NA
+missing <- ifelse(is.na(bait_dist_mon), 1, 0)
+no_bait <- which(rowSums(missing) == 73)
+no_bait
+# This was here to help me figure out what was causing data to appear missing 
+# when it wasn't.
+# The loop that begins on line 71 resolved the problem.
+```
+
+```{r}
+# Looking at transition period, identifying a possible third factor
+# png(here("FisheryData", "PossibleBaitFactors_2020on.png"), height=6, width=9, res=300, unit="in")
+plot(301:360, sanma[301:360], type = "l", col = "#4b8320", xlim = c(301,360), ylim = c(0,1),
+     ylab = "Proportion of Sets Using Bait Type", xlab = " ", las = 1, xaxt = "n")
+par(new = TRUE)
+plot(301:360, milkfish[301:360], type = "l", col = "#5761c0", xlim = c(301,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n")
+par(new = TRUE)
+plot(c(301, 360), c(0.8, 0.8), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n")
+par(new = TRUE)
+plot(c(314, 314), c(0, 1), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n")
+par(new = TRUE)
+plot(c(337, 337), c(0, 1), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n")
+axis((1), at = seq(301, 349, 12), labels = seq(2020, 2024, 1))
+# legend(340, 0.6, legend = c('sanma and sardine', 'milkfish and other'), 
+#       lty = 1, col = c("#4b8320", "#5761c0"))
+# dev.off()
+```
