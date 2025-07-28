@@ -1,0 +1,146 @@
+---
+title: "ObserverAccess"
+---
+
+# Purpose
+The purpose of this script is to access observer data and download the data 
+of interest:  
+
+* Metadata for observer data
+* Begin Haul Date  
+* Begin Haul Location
+* Hooks per float (to determine deep-set vs. shallow-set)  
+* Hooks per set
+* Bait type used
+* Leader material 
+
+This script draws fully upon materials provided by Jen Raynor and Johanna Wren
+(thank you!!).    
+
+There are some drivers you need ITS to install on your computer for this to 
+work, and that aspect of the code isn't covered in this script.
+
+# Prepare workspace
+```{r, message = FALSE}
+# Load libraries
+library(tidyverse)
+library(lubridate)
+library(rje)
+library(RODBC)
+library(here)
+```
+
+# Connect to the database
+Connect using your network username and password.  You'll need to put NMFS\ before your username.
+```{r}
+# Establish connection with the database
+ch <- odbcConnect(dsn = "SQLPROD",
+                        uid = rstudioapi::askForPassword("Network user name"),
+                        pwd = rstudioapi::askForPassword("Network password"),
+                        believeNRows = FALSE)
+```
+
+# Access the database
+This may require working with PIROP to gain permission to access the schema.  
+```{r}
+# Identify the schema
+shma_obs <- 'NEWOBS' # Schema for the observer data
+
+# Identify the tables
+table_obs <- sqlTables(ch, tableType = 'table', schema = shma_obs)
+table_obs
+
+view_obs <- sqlTables(ch, tableType = 'view', schema = shma_obs)
+view_obs
+```
+
+# Figure out what data are needed
+These tables and views provide metadata for the observer data.  Once you've 
+downloaded them once, you probably don't need to do it again.  
+```{r}
+# Define table names, noting that the reference numbers depend on access granted
+# May need to change the row number of TABLE_NAME
+tname_obs_keptreturn <- paste(tolower(shma_obs), table_obs$TABLE_NAME[67], sep = '.') # LOP_KEPT_RETURN
+tname_obs_meastype <- paste(tolower(shma_obs), table_obs$TABLE_NAME[79], sep = '.') # LOP_MEAS_TYPE
+tname_obs_specimentype <- paste(tolower(shma_obs), table_obs$TABLE_NAME[93], sep = '.') # LOP_SPECIMEN_TYPE
+tname_tab_desc <- paste(tolower(shma_obs), table_obs$TABLE_NAME[137], sep = '.') # LOPADM_TABS
+tname_view_desc <- paste(tolower(shma_obs), table_obs$TABLE_NAME[139], sep = '.') # LOPADM_VIEWS_DESC    
+
+vname_obs_speciescodes <- paste(tolower(shma_obs), view_obs$TABLE_NAME[194], sep = ".") # OLD_AND_NEW_SPEC_CODES_V
+vname_obs_column_dictionary <- paste(tolower(shma_obs), view_obs$TABLE_NAME[215], sep = ".") # vwColumnDictionary
+vname_obs_table_dictionary <- paste(tolower(shma_obs), view_obs$TABLE_NAME[216], sep = ".") # vwTableDictionary
+
+# Save these tables and views to the workspace
+ObsKeptReturn <- sqlQuery(ch, paste("SELECT *",
+                                    "FROM", tname_obs_keptreturn))
+ObsMeasType <- sqlQuery(ch, paste("Select *",
+                                  "FROM", tname_obs_meastype))
+ObsSpecimenType <- sqlQuery(ch, paste("SELECT *",
+                                      "FROM", tname_obs_specimentype))
+ObsTabDesc <- sqlQuery(ch, paste("SELECT *",
+                                 "FROM", tname_tab_desc))
+
+ObsViewDesc <- sqlQuery(ch, paste("SELECT *",
+                                 "FROM", tname_view_desc))
+
+
+ObsSpeciesCodes <- sqlQuery(ch, paste("SELECT *",
+                                         "FROM", vname_obs_speciescodes))
+ObsColumnDictionary <- sqlQuery(ch, paste("SELECT *",
+                                         "FROM", vname_obs_column_dictionary))
+ObsTableDictionary <- sqlQuery(ch, paste("SELECT *",
+                                         "FROM", vname_obs_table_dictionary))
+
+# Save these tables and views as csvs
+write_csv(ObsMeasType, here("FisheryData", "ObserverMeasurementTypes.csv"))
+write_csv(ObsKeptReturn, here("FisheryData", "ObserverKeptReturnedCodes.csv"))
+write_csv(ObsSpecimenType, here("FisheryData", "ObserverSpecimenTypes.csv"))
+write_csv(ObsTabDesc, here("FisheryData", "ObserverTabDesc.csv"))
+write_csv(ObsViewDesc, here("FisheryData", "ObserverViewDesc.csv"))
+
+write_csv(ObsSpeciesCodes, here("FisheryData", "ObserverSpeciesCodes.csv"))
+write_csv(ObsColumnDictionary, here("FisheryData", "ObserverColumnDictionary.csv"))
+write_csv(ObsTableDictionary, here("FisheryData", "ObserverTableDictionary.csv"))
+```
+
+# Access the data needed
+I've done a bit of exploration while coding to streamline things.  
+```{r}
+# Define table name, noting the reference numbers depend on access granted
+# May need to change the row number of TABLE_NAME
+tname_obs_catch <- paste(tolower(shma_obs), table_obs$TABLE_NAME[7], sep = '.') # CATCH
+tname_obs_gearcfg <- paste(tolower(shma_obs), table_obs$TABLE_NAME[11], sep = '.') # GEAR_CFG; Contains leader material
+tname_obs_setenvir <- paste(tolower(shma_obs), table_obs$TABLE_NAME[160], sep = '.') # SET_ENVIRON
+tname_obs_trips <- paste(tolower(shma_obs), table_obs$TABLE_NAME[182], sep = '.') # TRIPS
+
+# See available column names
+sqlColumns(ch, sqtable = table_obs$TABLE_NAME[7], schema = shma_obs)$COLUMN_NAME # May need to change the row number of TABLE_NAME
+
+# Save these tables to workspace
+Obs_Catch <- sqlQuery(ch, paste("SELECT T_TRIP_NUM, S_SET_NUM, SPECIES_CODE, MEAS1, MEAS2, MEAS3, MEAS4, KEPT_RETURN_ID, HK_NUM, FLT_NUM, MEAS1_TYPE_ID, MEAS2_TYPE_ID, MEAS3_TYPE_ID, MEAS4_TYPE_ID",
+                                "FROM", tname_obs_catch))
+Obs_GearConfig <- sqlQuery(ch, paste("SELECT T_TRIP_NUM, S_SET_NUM, HKS_PER_FLT, LDR_MAT_ID, BAIT_ID, NUM_HKS_SET",
+                                     "FROM", tname_obs_gearcfg))
+Obs_SetEnvir <- sqlQuery(ch, paste("SELECT T_TRIP_NUM, SET_NUM, HAUL_BEGIN_LAT, HAUL_BEGIN_LON, HAUL_BEGIN_DATETIME",
+                                   "FROM", tname_obs_setenvir))
+Obs_Trips <- sqlQuery(ch, paste("SELECT TRIP_NUM, PERMIT_NUM, EXPR_TRIP_TYPE_ID",
+                                "FROM", tname_obs_trips))
+
+# Save these tables as csvs and R data sets
+write_csv(Obs_Catch, here("FisheryData", "Observer_Catch.csv"))
+saveRDS(object = Obs_Catch, file = here("FisheryData", "Observer_Catch.rds"))
+
+write_csv(Obs_GearConfig, here("FisheryData", "Observer_GearConfig.csv"))
+saveRDS(object = Obs_GearConfig, file = here("FisheryData", "Observer_GearConfig.rds"))
+
+write_csv(Obs_SetEnvir, here("FisheryData", "Observer_SetEnvir.csv"))
+saveRDS(object = Obs_SetEnvir, file = here("FisheryData", "Observer_SetEnvir.rds"))
+
+write_csv(Obs_Trips, here("FisheryData", "Observer_Trips.csv"))
+saveRDS(object = Obs_Trips, file = here("FisheryData", "Observer_Trips.rds"))
+```
+
+# Close database connection
+```{r}
+odbcClose(ch)
+```
