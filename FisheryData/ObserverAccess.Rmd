@@ -60,8 +60,8 @@ downloaded them once, you probably don't need to do it again.
 ```{r}
 # Define table names, noting that the reference numbers depend on access granted
 # May need to change the row number of TABLE_NAME
-tname_obs_bait <- paste(tolower(shma_obs), table_obs$TABLE_NAME[49], sep = '.') # LOP_EXPR_TRIP_TYPE
-tname_obs_exprtype <- paste(tolower(shma_obs), table_obs$TABLE_NAME[19], sep = '.') # LOP_BAIT
+tname_obs_bait <- paste(tolower(shma_obs), table_obs$TABLE_NAME[19], sep = '.') # LOP_BAIT 
+tname_obs_exprtype <- paste(tolower(shma_obs), table_obs$TABLE_NAME[49], sep = '.') # LOP_EXPR_TRIP_TYPE
 tname_obs_keptreturn <- paste(tolower(shma_obs), table_obs$TABLE_NAME[67], sep = '.') # LOP_KEPT_RETURN
 tname_obs_leadermat <- paste(tolower(shma_obs), table_obs$TABLE_NAME[69], sep = '.') # LOP_LDR_MAT
 tname_obs_meastype <- paste(tolower(shma_obs), table_obs$TABLE_NAME[79], sep = '.') # LOP_MEAS_TYPE
