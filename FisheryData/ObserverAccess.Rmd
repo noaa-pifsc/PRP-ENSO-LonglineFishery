@@ -60,29 +60,39 @@ downloaded them once, you probably don't need to do it again.
 ```{r}
 # Define table names, noting that the reference numbers depend on access granted
 # May need to change the row number of TABLE_NAME
+tname_obs_bait <- paste(tolower(shma_obs), table_obs$TABLE_NAME[49], sep = '.') # LOP_EXPR_TRIP_TYPE
+tname_obs_exprtype <- paste(tolower(shma_obs), table_obs$TABLE_NAME[19], sep = '.') # LOP_BAIT
 tname_obs_keptreturn <- paste(tolower(shma_obs), table_obs$TABLE_NAME[67], sep = '.') # LOP_KEPT_RETURN
+tname_obs_leadermat <- paste(tolower(shma_obs), table_obs$TABLE_NAME[69], sep = '.') # LOP_LDR_MAT
 tname_obs_meastype <- paste(tolower(shma_obs), table_obs$TABLE_NAME[79], sep = '.') # LOP_MEAS_TYPE
 tname_obs_specimentype <- paste(tolower(shma_obs), table_obs$TABLE_NAME[93], sep = '.') # LOP_SPECIMEN_TYPE
 tname_tab_desc <- paste(tolower(shma_obs), table_obs$TABLE_NAME[137], sep = '.') # LOPADM_TABS
 tname_view_desc <- paste(tolower(shma_obs), table_obs$TABLE_NAME[139], sep = '.') # LOPADM_VIEWS_DESC    
+tname_vw_cols <- paste(tolower(shma_obs), table_obs$TABLE_NAME[192], sep = '.') # VW_COLS
 
 vname_obs_speciescodes <- paste(tolower(shma_obs), view_obs$TABLE_NAME[194], sep = ".") # OLD_AND_NEW_SPEC_CODES_V
 vname_obs_column_dictionary <- paste(tolower(shma_obs), view_obs$TABLE_NAME[215], sep = ".") # vwColumnDictionary
 vname_obs_table_dictionary <- paste(tolower(shma_obs), view_obs$TABLE_NAME[216], sep = ".") # vwTableDictionary
 
 # Save these tables and views to the workspace
+ObsBait <- sqlQuery(ch, paste("SELECT *",
+                                    "FROM", tname_obs_bait))
+ObsExprType <- sqlQuery(ch, paste("SELECT *",
+                                    "FROM", tname_obs_exprtype))
 ObsKeptReturn <- sqlQuery(ch, paste("SELECT *",
                                     "FROM", tname_obs_keptreturn))
+ObsLeaderMat <- sqlQuery(ch, paste("SELECT *",
+                                    "FROM", tname_obs_leadermat))
 ObsMeasType <- sqlQuery(ch, paste("Select *",
                                   "FROM", tname_obs_meastype))
 ObsSpecimenType <- sqlQuery(ch, paste("SELECT *",
                                       "FROM", tname_obs_specimentype))
 ObsTabDesc <- sqlQuery(ch, paste("SELECT *",
                                  "FROM", tname_tab_desc))
-
 ObsViewDesc <- sqlQuery(ch, paste("SELECT *",
                                  "FROM", tname_view_desc))
-
+ObsVWcols <- sqlQuery(ch, paste("SELECT *",
+                                 "FROM", tname_vw_cols))
 
 ObsSpeciesCodes <- sqlQuery(ch, paste("SELECT *",
                                          "FROM", vname_obs_speciescodes))
@@ -92,11 +102,15 @@ ObsTableDictionary <- sqlQuery(ch, paste("SELECT *",
                                          "FROM", vname_obs_table_dictionary))
 
 # Save these tables and views as csvs
+write_csv(ObsBait, here("FisheryData", "ObserverBaitTypes.csv"))
+write_csv(ObsExprType, here("FisheryData", "ObserverExperimentalTripCodes.csv"))
 write_csv(ObsMeasType, here("FisheryData", "ObserverMeasurementTypes.csv"))
+write_csv(ObsLeaderMat, here("FisheryData", "ObserverLeaderMaterials.csv"))
 write_csv(ObsKeptReturn, here("FisheryData", "ObserverKeptReturnedCodes.csv"))
 write_csv(ObsSpecimenType, here("FisheryData", "ObserverSpecimenTypes.csv"))
 write_csv(ObsTabDesc, here("FisheryData", "ObserverTabDesc.csv"))
 write_csv(ObsViewDesc, here("FisheryData", "ObserverViewDesc.csv"))
+write_csv(ObsVWcols, here("FisheryData", "ObserverVWcols.csv"))
 
 write_csv(ObsSpeciesCodes, here("FisheryData", "ObserverSpeciesCodes.csv"))
 write_csv(ObsColumnDictionary, here("FisheryData", "ObserverColumnDictionary.csv"))
