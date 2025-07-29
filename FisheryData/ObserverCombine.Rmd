@@ -1,0 +1,54 @@
+---
+title: "ObserverCombine"
+---
+
+# Purpose
+This script combines various observer data into a single set-level dataset for 
+deep sets (>= 15 hooks per float).  Since we're only using observer data to 
+understand the change in leader material over time, that's what this script 
+focuses on.
+
+```{r}
+# Set up the environment
+library(tidyverse, quietly = TRUE)
+library(here)
+```
+
+```{r}
+# Load the data
+GearConfig <- readRDS(here("FisheryData", "Observer_GearConfig.rds"))
+SetEnvir <- readRDS(here("FisheryData", "Observer_SetEnvir.rds"))
+Trips <- readRDS(here("FisheryData", "Observer_Trips.rds"))
+```
+
+```{r}
+# Rename common fields so they're all the same across tables
+GearConfig <- GearConfig |>
+  rename(TRIP_NUM = T_TRIP_NUM, SET_NUM = S_SET_NUM)
+
+SetEnvir <- SetEnvir|>
+  rename(TRIP_NUM = T_TRIP_NUM)
+```
+
+```{r}
+# Combine the three tables into a single table
+# Using a full join so that we retain all sets for now
+GearSet <- full_join(SetEnvir, GearConfig)
+ObservedSetDetails_allSets <- full_join(GearSet, Trips)
+```
+
+```{r}
+# Filter out trips we don't want: 
+# American Samoa (we want trips that start with "LL" not "AS")
+# shallow sets (>= 15 hpf)
+# experimental trips (no experimental trip code)
+ObservedDeepSetDetails <- ObservedSetDetails_allSets |>
+  filter(str_starts(TRIP_NUM, "LL") & HKS_PER_FLT >= 15 & is.na(EXPR_TRIP_TYPE_ID))
+```
+
+```{r}
+# Save output in two different formats
+saveRDS(object = ObservedDeepSetDetails, file = here("FisheryData", "ObservedDeepSetDetails.rds"))
+write_csv(ObservedDeepSetDetails, file = here("FisheryData", "ObservedDeepSetDetails.csv"))
+```
+
