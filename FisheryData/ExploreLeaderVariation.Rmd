@@ -1,0 +1,138 @@
+---
+title: "ExploreLeaderVariation"
+---
+
+# Purpose
+The purpose of this script is to look at how leader material varies over time,
+to get a sense of how it might be incorporated into the BRTs.
+
+```{r}
+# Set up environment
+library(tidyverse)
+library(here)
+library(reshape)
+library(zoo)
+```
+
+```{r}
+# Load data
+ObservedSets <- readRDS(here("FisheryData", "ObservedDeepSetDetails.rds"))
+```
+
+```{r}
+# Create a matrix for a heatmap
+# Thanks to https://rpubs.com/lumumba99/1026665 for the example code!
+Leader_mats <- c(1309, 1310, 1311, 8888) # From ObserverLeaderMaterials
+leader_dist <- matrix(NA, nrow = (2024-1995+1), ncol = 4)
+for (yr in seq(1995, 2024, 1)) {
+  for (leader in seq(1, 4, 1)) {  
+    yr_hold <- ObservedSets |>
+      filter(year(HAUL_BEGIN_DATETIME) == yr)
+
+    n <- count(yr_hold, LDR_MAT_ID == Leader_mats[leader])
+
+    leader_dist[yr-1994,leader] <- n$n[2] / dim(yr_hold)[1]
+  }
+}
+
+rownames(leader_dist) <- seq(1995, 2024, 1)
+colnames(leader_dist) <- seq(1, 4, 1)
+
+leader_melt <- melt(leader_dist)
+ggp <- ggplot(leader_melt, aes(X1, X2)) + 
+  geom_tile(aes(fill = value))
+
+# pdf(here("FisheryData", "AnnualLeaderDistribution.pdf"))
+ggp                                                              
+# dev.off()
+```
+
+```{r}
+# Similar to the above, but at a monthly resolution
+# Note: this is slow, but after a few hours of trying to make a chronological 
+# index that could allow combining by month and year sequentially, I decided to 
+# stick with this since we'll likely only need to run in a few times ever.
+leader_dist_mon <- matrix(NA, nrow = (2024-1995+1)*12, ncol = 4)
+c <- 1 # counter
+for (yr in seq(1995, 2024, 1)) {
+  for (mo in seq(1, 12, 1)) {
+   for (leader in seq(1, 4, 1)) {
+     mo_hold <- ObservedSets |>
+       filter(year(HAUL_BEGIN_DATETIME) == yr & month(HAUL_BEGIN_DATETIME) == mo)
+     
+     n <- count(mo_hold, LDR_MAT_ID == Leader_mats[leader])
+     
+     # The size of n depends on whether all values are TRUE
+     leader_match <- which(n[,1] == TRUE)
+     if (length(leader_match) > 0) {
+       # The as.numeric is to get around variables vs. numbers
+       # There is probably a better solution which is escaping me
+       leader_dist_mon[c,leader] <- as.numeric(n[leader_match,2] / dim(mo_hold)[1])
+     }
+   }
+    
+  c <- c + 1 # increment counter
+  }
+}
+
+rownames(leader_dist_mon) <- seq(1, (2024-1995+1)*12, 1)
+colnames(leader_dist_mon) <- seq(1, 4, 1)
+```
+
+```{r}
+# png(here("FisheryData", "PossibleLeaderFactors.png"), height=6, width=9, res=300, unit="in")
+plot(1:360, leader_dist_mon[,1], type = "l", col = "#008da8", xlim = c(1,360), ylim = c(0,1),
+     ylab = "Proportion of Sets Using Leader Type", xlab = " ", las = 1)
+par(new = TRUE)
+plot(1:360, leader_dist_mon[,2], type = "l", col = "#db6015", xlim = c(1,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", xaxt = "n", yaxt = "n")
+par(new = TRUE)
+plot(1:360, leader_dist_mon[,3], type = "l", col = "#323c46", xlim = c(1,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", xaxt = "n", yaxt = "n")
+par(new = TRUE)
+plot(1:360, leader_dist_mon[,4], type = "l", col = "#a5aaaf", xlim = c(1,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", xaxt = "n", yaxt = "n")
+legend(200, 0.6, legend = c('mono', 'wire', 'other', 'not recorded'), 
+      lty = 1, col = c("#008da8", "#db6015", "#323c46", "#a5aaaf"))
+# dev.off()
+```
+```{r}
+# Looking at transition period
+# png(here("FisheryData", "PossibleLeaderFactors_2020on.png"), height=6, width=9, res=300, unit="in")
+plot(301:360, leader_dist_mon[301:360,1], type = "l", col = "#008da8", xlim = c(301,360), ylim = c(0,1),
+     ylab = "Proportion of Sets Using Leader Type", xlab = " ", las = 1, xaxt = "n")
+par(new = TRUE)
+plot(301:360, leader_dist_mon[301:360,2], type = "l", col = "#db6015", xlim = c(301,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n")
+par(new = TRUE)
+plot(c(318, 318), c(0, 1), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n")
+axis((1), at = seq(301, 349, 12), labels = seq(2020, 2024, 1))
+legend(325, 0.6, legend = c('mono', 'wire'), 
+      lty = 1, col = c("#008da8", "#db6015"))
+# dev.off()
+```
+```{r}
+# Looking at transition period
+# png(here("FisheryData", "PossibleLeaderFactors_1995thru2001.png"), height=6, width=9, res=300, unit="in")
+plot(1:84, leader_dist_mon[1:84,1], type = "l", col = "#008da8", xlim = c(1,84), ylim = c(0,1),
+     ylab = "Proportion of Sets Using Leader Type", xlab = " ", las = 1, xaxt = "n")
+par(new = TRUE)
+plot(1:84, leader_dist_mon[1:84,2], type = "l", col = "#db6015", xlim = c(1,84), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n", yaxt = "n")
+par(new = TRUE)
+plot(1:84, leader_dist_mon[1:84,3], type = "l", col = "#323c46", xlim = c(1,84), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n", yaxt = "n")
+par(new = TRUE)
+plot(1:84, leader_dist_mon[1:84,4], type = "l", col = "#a5aaaf", xlim = c(1,84), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n", yaxt = "n")
+# plot(c(318, 318), c(0, 1), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
+#      ylab = " ", xlab = " ", las = 1, xaxt = "n")
+axis((1), at = seq(1, 73, 12), labels = seq(1995, 2001, 1))
+# legend(325, 0.6, legend = c('mono', 'wire'), 
+#       lty = 1, col = c("#008da8", "#db6015"))
+# dev.off()
+```
+
+
+
