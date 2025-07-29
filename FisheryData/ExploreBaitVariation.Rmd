@@ -68,16 +68,13 @@ for (yr in seq(1995, 2024, 1)) {
      n <- count(mo_hold, BAIT == bait)
      
      # The size of n depends on whether all values are TRUE
-     if (dim(n)[1] == 1) {
-       bait_match <- which(n[,1] == TRUE)
-       if (length(bait_match) > 0) {
-         # The as.numeric is to get around variables vs. numbers
-         # There is probably a better solution which is escaping me
-         bait_dist_mon[c,bait] <- as.numeric(n[bait_match,2] / dim(mo_hold)[1])
-       }
-     } else {
-       bait_dist_mon[c,bait] <- n$n[2] / dim(mo_hold)[1]
+     bait_match <- which(n[,1] == TRUE)
+     if (length(bait_match) > 0) {
+       # The as.numeric is to get around variables vs. numbers
+       # There is probably a better solution which is escaping me
+       bait_dist_mon[c,bait] <- as.numeric(n[bait_match,2] / dim(mo_hold)[1])
      }
+     
    }
     
   c <- c + 1 # increment counter
