@@ -16,7 +16,13 @@ library(zoo)
 
 ```{r}
 # Load data
-ObservedSets <- readRDS(here("FisheryData", "ObservedDeepSetDetails.rds"))
+ObservedSets_all <- readRDS(here("FisheryData", "ObservedDeepSetDetails.rds"))
+```
+
+```{r}
+# Limit to geographic area of interest
+ObservedSets <- ObservedSets_all |>
+  filter(HAUL_BEGIN_LAT >= 10 & HAUL_BEGIN_LAT <= 40 & HAUL_BEGIN_LON >= -180 & HAUL_BEGIN_LON <= -130)
 ```
 
 ```{r}
@@ -28,10 +34,16 @@ for (yr in seq(1995, 2024, 1)) {
   for (leader in seq(1, 4, 1)) {  
     yr_hold <- ObservedSets |>
       filter(year(HAUL_BEGIN_DATETIME) == yr)
-
+    
     n <- count(yr_hold, LDR_MAT_ID == Leader_mats[leader])
-
-    leader_dist[yr-1994,leader] <- n$n[2] / dim(yr_hold)[1]
+    
+    # The size of n depends on whether all values are TRUE
+    leader_match <- which(n[,1] == TRUE)
+    if (length(leader_match) > 0) {
+      # The as.numeric is to get around variables vs. numbers
+      # There is probably a better solution which is escaping me
+      leader_dist[yr-1994,leader] <- as.numeric(n[leader_match,2] / dim(yr_hold)[1])
+    }
   }
 }
 
@@ -92,6 +104,9 @@ plot(1:360, leader_dist_mon[,3], type = "l", col = "#323c46", xlim = c(1,360), y
 par(new = TRUE)
 plot(1:360, leader_dist_mon[,4], type = "l", col = "#a5aaaf", xlim = c(1,360), ylim = c(0,1),
      ylab = " ", xlab = " ", xaxt = "n", yaxt = "n")
+par(new = TRUE)
+plot(c(68, 68), c(0, 1), type = "l", col = "#cbcfd1", xlim = c(1,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n")
 legend(200, 0.6, legend = c('mono', 'wire', 'other', 'not recorded'), 
       lty = 1, col = c("#008da8", "#db6015", "#323c46", "#a5aaaf"))
 # dev.off()
@@ -105,7 +120,7 @@ par(new = TRUE)
 plot(301:360, leader_dist_mon[301:360,2], type = "l", col = "#db6015", xlim = c(301,360), ylim = c(0,1),
      ylab = " ", xlab = " ", las = 1, xaxt = "n")
 par(new = TRUE)
-plot(c(318, 318), c(0, 1), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
+plot(c(317.5, 317.5), c(0, 1), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
      ylab = " ", xlab = " ", las = 1, xaxt = "n")
 axis((1), at = seq(301, 349, 12), labels = seq(2020, 2024, 1))
 legend(325, 0.6, legend = c('mono', 'wire'), 
