@@ -16,7 +16,13 @@ library(zoo)
 
 ```{r}
 # Load data
-DeepSets <- read_csv(here("FisheryData", "DeepSets.csv"), show_col_types = FALSE)
+DeepSets_all <- read_csv(here("FisheryData", "DeepSets.csv"), show_col_types = FALSE)
+```
+
+```{r}
+# Limit to geographic area of interest
+DeepSets <- DeepSets_all |>
+  filter(BH_LAT >= 10 & BH_LAT <= 40 & BH_LON >= 130 & BH_LON <= 180)
 ```
 
 ```{r}
@@ -126,10 +132,16 @@ par(new = TRUE)
 plot(c(301, 360), c(0.8, 0.8), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
      ylab = " ", xlab = " ", las = 1, xaxt = "n")
 par(new = TRUE)
-plot(c(314, 314), c(0, 1), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
+plot(c(313.5, 313.5), c(0, 1), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
      ylab = " ", xlab = " ", las = 1, xaxt = "n")
 par(new = TRUE)
-plot(c(337, 337), c(0, 1), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
+plot(c(336.5, 336.5), c(0, 1), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n")
+par(new = TRUE)
+plot(c(301, 360), c(0.75, 0.75), type = "l", lty = 2, col = "#cbcfd1", xlim = c(301,360), ylim = c(0,1),
+     ylab = " ", xlab = " ", las = 1, xaxt = "n")
+par(new = TRUE)
+plot(c(328.5, 328.5), c(0, 1), type = "l", lty = 2, col = "#cbcfd1", xlim = c(301,360), ylim = c(0,1),
      ylab = " ", xlab = " ", las = 1, xaxt = "n")
 axis((1), at = seq(301, 349, 12), labels = seq(2020, 2024, 1))
 # legend(340, 0.6, legend = c('sanma and sardine', 'milkfish and other'), 
