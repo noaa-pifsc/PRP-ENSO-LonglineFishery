@@ -126,6 +126,24 @@ bait_melt_mon <- DeepSets %>%
   summarise(count = n()) %>%
   group_by(BH_YR,BH_MON) %>%
   mutate(percent = (count / sum(count)))
+
+# Combining all sanma and milkfish codes to replicate the plot below to check the data
+# adding date for easier plotting
+sanma_idx <- which(bait_melt_mon$BAIT %in% c(10,51,58))
+sanma2 <- bait_melt_mon[sanma_idx,] %>% 
+  summarise(value=sum(percent)) %>% 
+  mutate(date=as.Date(paste(BH_YR, BH_MON, '15',sep='-')))
+milkfish_idx <- which(bait_melt_mon$BAIT %in% c(1,72,73))
+milkfish2 <- bait_melt_mon[milkfish_idx,] %>% 
+  summarise(value=sum(percent)) %>% 
+  mutate(date=as.Date(paste(BH_YR, BH_MON, '15',sep='-')))
+# make a plot to test the output
+ggplot() + 
+  geom_path(data=sanma2, aes(x=date,y=value), color='#4b8320') + 
+  geom_path(data=milkfish2, aes(x=date,y=value), color='#5761c0') +
+  scale_x_date(date_breaks = 'year', date_labels = '%Y') +
+  theme_classic()
+
 ```
 
 
