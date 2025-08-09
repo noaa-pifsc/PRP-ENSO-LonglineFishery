@@ -57,6 +57,31 @@ ggp
 common_bait <- bait_dist[,c(1, 10, 51, 58, 72, 73)]
 rowSums(common_bait, na.rm = TRUE)
 ```
+```{r eval=FALSE, include=FALSE}
+# alternative way to sum up the bait codes using dplyr
+# This first one makes it in 'long' format
+bait_melt <- DeepSets %>%
+    group_by(BH_YR, BAIT) %>%
+    summarise(count = n()) %>%
+    group_by(BH_YR) %>%
+    mutate(percent = (count / sum(count)))
+# but you can turn it into matrix or 'wide' format like so, which should match the bait_dist above
+bait_wide <- bait_melt %>% 
+  arrange(BH_YR, BAIT) %>% 
+  pivot_wider(names_from = BAIT, values_from = percent)
+
+# plot figure
+ggp <- ggplot(bait_melt, aes(BH_YR, BAIT)) + 
+  geom_tile(aes(fill = percent))
+ggp
+
+# Just seeing how the most common bait sum, if they capture most all sets
+bait_melt %>% 
+  filter(BAIT %in% c(1,10,51,58,72,73)) %>% 
+  group_by(BH_YR) %>% 
+  summarise(sum(percent, na.rm=T))
+```
+
 
 ```{r}
 # Similar to the above, but at a monthly resolution
@@ -90,6 +115,17 @@ for (yr in seq(1995, 2024, 1)) {
 rownames(bait_dist_mon) <- seq(1, (2024-1995+1)*12, 1)
 colnames(bait_dist_mon) <- seq(1, 73, 1)
 ```
+
+```{r}
+# Alternative monthly way that is faster. 
+# Note: this doesn't include the months and bait codes that don't have any values, so it's like the above with na.omit()
+bait_melt_mon <- DeepSets %>%
+    group_by(BH_YR, BH_MON, BAIT) %>%
+    summarise(count = n()) %>%
+    group_by(BH_YR,BH_MON) %>%
+    mutate(percent = (count / sum(count)))
+```
+
 
 ```{r}
 # Test creating a factor for bait where the factors are:
