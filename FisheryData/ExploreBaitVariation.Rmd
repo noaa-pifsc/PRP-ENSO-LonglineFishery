@@ -118,12 +118,14 @@ colnames(bait_dist_mon) <- seq(1, 73, 1)
 
 ```{r eval=FALSE, include=FALSE}
 # Alternative monthly way that is faster. 
+# I compared this pretty extensively with the above code and from what I caould tell the output numbers are identical. 
 # Note: this doesn't include the months and bait codes that don't have any values, so it's like the above with na.omit()
 bait_melt_mon <- DeepSets %>%
-    group_by(BH_YR, BH_MON, BAIT) %>%
-    summarise(count = n()) %>%
-    group_by(BH_YR,BH_MON) %>%
-    mutate(percent = (count / sum(count)))
+  filter(BH_YR < 2025) %>% # there is 2025 data so I'm just removing that to match our time span
+  group_by(BH_YR, BH_MON, BAIT) %>%
+  summarise(count = n()) %>%
+  group_by(BH_YR,BH_MON) %>%
+  mutate(percent = (count / sum(count)))
 ```
 
 
