@@ -116,7 +116,7 @@ rownames(bait_dist_mon) <- seq(1, (2024-1995+1)*12, 1)
 colnames(bait_dist_mon) <- seq(1, 73, 1)
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 # Alternative monthly way that is faster. 
 # Note: this doesn't include the months and bait codes that don't have any values, so it's like the above with na.omit()
 bait_melt_mon <- DeepSets %>%
