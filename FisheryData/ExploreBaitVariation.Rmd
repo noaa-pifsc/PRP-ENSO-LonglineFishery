@@ -57,6 +57,31 @@ ggp
 common_bait <- bait_dist[,c(1, 10, 51, 58, 72, 73)]
 rowSums(common_bait, na.rm = TRUE)
 ```
+```{r eval=FALSE, include=FALSE}
+# alternative way to sum up the bait codes using dplyr
+# This first one makes it in 'long' format
+bait_melt <- DeepSets %>%
+    group_by(BH_YR, BAIT) %>%
+    summarise(count = n()) %>%
+    group_by(BH_YR) %>%
+    mutate(percent = (count / sum(count)))
+# but you can turn it into matrix or 'wide' format like so, which should match the bait_dist above
+bait_wide <- bait_melt %>% 
+  arrange(BH_YR, BAIT) %>% 
+  pivot_wider(names_from = BAIT, values_from = percent)
+
+# plot figure
+ggp <- ggplot(bait_melt, aes(BH_YR, BAIT)) + 
+  geom_tile(aes(fill = percent))
+ggp
+
+# Just seeing how the most common bait sum, if they capture most all sets
+bait_melt %>% 
+  filter(BAIT %in% c(1,10,51,58,72,73)) %>% 
+  group_by(BH_YR) %>% 
+  summarise(sum(percent, na.rm=T))
+```
+
 
 ```{r}
 # Similar to the above, but at a monthly resolution
@@ -90,6 +115,37 @@ for (yr in seq(1995, 2024, 1)) {
 rownames(bait_dist_mon) <- seq(1, (2024-1995+1)*12, 1)
 colnames(bait_dist_mon) <- seq(1, 73, 1)
 ```
+
+```{r eval=FALSE, include=FALSE}
+# Alternative monthly way that is faster. 
+# I compared this pretty extensively with the above code and from what I caould tell the output numbers are identical. 
+# Note: this doesn't include the months and bait codes that don't have any values, so it's like the above with na.omit()
+bait_melt_mon <- DeepSets %>%
+  filter(BH_YR < 2025) %>% # there is 2025 data so I'm just removing that to match our time span
+  group_by(BH_YR, BH_MON, BAIT) %>%
+  summarise(count = n()) %>%
+  group_by(BH_YR,BH_MON) %>%
+  mutate(percent = (count / sum(count)))
+
+# Combining all sanma and milkfish codes to replicate the plot below to check the data
+# adding date for easier plotting
+sanma_idx <- which(bait_melt_mon$BAIT %in% c(10,51,58))
+sanma2 <- bait_melt_mon[sanma_idx,] %>% 
+  summarise(value=sum(percent)) %>% 
+  mutate(date=as.Date(paste(BH_YR, BH_MON, '15',sep='-')))
+milkfish_idx <- which(bait_melt_mon$BAIT %in% c(1,72,73))
+milkfish2 <- bait_melt_mon[milkfish_idx,] %>% 
+  summarise(value=sum(percent)) %>% 
+  mutate(date=as.Date(paste(BH_YR, BH_MON, '15',sep='-')))
+# make a plot to test the output
+ggplot() + 
+  geom_path(data=sanma2, aes(x=date,y=value), color='#4b8320') + 
+  geom_path(data=milkfish2, aes(x=date,y=value), color='#5761c0') +
+  scale_x_date(date_breaks = 'year', date_labels = '%Y') +
+  theme_classic()
+
+```
+
 
 ```{r}
 # Test creating a factor for bait where the factors are:

@@ -133,26 +133,58 @@ sqlColumns(ch, sqtable = table_obs$TABLE_NAME[7], schema = shma_obs)$COLUMN_NAME
 # Save these tables to workspace
 Obs_Catch <- sqlQuery(ch, paste("SELECT T_TRIP_NUM, S_SET_NUM, SPECIES_CODE, MEAS1, MEAS2, MEAS3, MEAS4, KEPT_RETURN_ID, HK_NUM, FLT_NUM, MEAS1_TYPE_ID, MEAS2_TYPE_ID, MEAS3_TYPE_ID, MEAS4_TYPE_ID",
                                 "FROM", tname_obs_catch))
-Obs_GearConfig <- sqlQuery(ch, paste("SELECT T_TRIP_NUM, S_SET_NUM, HKS_PER_FLT, LDR_MAT_ID, BAIT_ID, NUM_HKS_SET",
-                                     "FROM", tname_obs_gearcfg))
-Obs_SetEnvir <- sqlQuery(ch, paste("SELECT T_TRIP_NUM, SET_NUM, HAUL_BEGIN_LAT, HAUL_BEGIN_LON, HAUL_BEGIN_DATETIME",
-                                   "FROM", tname_obs_setenvir))
-Obs_Trips <- sqlQuery(ch, paste("SELECT TRIP_NUM, PERMIT_NUM, EXPR_TRIP_TYPE_ID",
-                                "FROM", tname_obs_trips))
+# Obs_GearConfig <- sqlQuery(ch, paste("SELECT T_TRIP_NUM, S_SET_NUM, HKS_PER_FLT, LDR_MAT_ID, BAIT_ID, NUM_HKS_SET",
+#                                      "FROM", tname_obs_gearcfg))
+# Obs_SetEnvir <- sqlQuery(ch, paste("SELECT T_TRIP_NUM, SET_NUM, HAUL_BEGIN_LAT, HAUL_BEGIN_LON, HAUL_BEGIN_DATETIME",
+#                                    "FROM", tname_obs_setenvir))
+# Obs_Trips <- sqlQuery(ch, paste("SELECT TRIP_NUM, PERMIT_NUM, EXPR_TRIP_TYPE_ID",
+#                                 "FROM", tname_obs_trips))
 
 # Save these tables as csvs and R data sets
 write_csv(Obs_Catch, here("FisheryData", "Observer_Catch.csv"))
 saveRDS(object = Obs_Catch, file = here("FisheryData", "Observer_Catch.rds"))
 
-write_csv(Obs_GearConfig, here("FisheryData", "Observer_GearConfig.csv"))
-saveRDS(object = Obs_GearConfig, file = here("FisheryData", "Observer_GearConfig.rds"))
-
-write_csv(Obs_SetEnvir, here("FisheryData", "Observer_SetEnvir.csv"))
-saveRDS(object = Obs_SetEnvir, file = here("FisheryData", "Observer_SetEnvir.rds"))
-
-write_csv(Obs_Trips, here("FisheryData", "Observer_Trips.csv"))
-saveRDS(object = Obs_Trips, file = here("FisheryData", "Observer_Trips.rds"))
+# write_csv(Obs_GearConfig, here("FisheryData", "Observer_GearConfig.csv"))
+# saveRDS(object = Obs_GearConfig, file = here("FisheryData", "Observer_GearConfig.rds"))
+# 
+# write_csv(Obs_SetEnvir, here("FisheryData", "Observer_SetEnvir.csv"))
+# saveRDS(object = Obs_SetEnvir, file = here("FisheryData", "Observer_SetEnvir.rds"))
+# 
+# write_csv(Obs_Trips, here("FisheryData", "Observer_Trips.csv"))
+# saveRDS(object = Obs_Trips, file = here("FisheryData", "Observer_Trips.rds"))
 ```
+
+```{r}
+# This code combines the sql queries above (except the catch) with the joining and filtering from the ObserverCombine.Rmd script
+ObservedDeepSetDetails <- sqlQuery(ch, paste(
+  "SELECT",
+    "cf.T_TRIP_NUM,", 
+    "cf.S_SET_NUM,", 
+    "cf.HKS_PER_FLT,", 
+    "cf.LDR_MAT_ID,", 
+    "cf.BAIT_ID,", 
+    "cf.NUM_HKS_SET,",
+    "en.HAUL_BEGIN_LAT,", 
+    "en.HAUL_BEGIN_LON,", 
+    "en.HAUL_BEGIN_DATETIME,",
+    "tr.PERMIT_NUM,", 
+    "tr.EXPR_TRIP_TYPE_ID",
+  "FROM",
+    tname_obs_gearcfg, "cf",
+    "FULL JOIN", tname_obs_setenvir, "en ON (cf.T_TRIP_NUM=en.T_TRIP_NUM AND cf.S_SET_NUM=en.SET_NUM)",
+    "FULL JOIN", tname_obs_trips, "tr ON (cf.T_TRIP_NUM=tr.TRIP_NUM)",
+  "WHERE",
+    "tr.TRIP_NUM LIKE 'LL%' AND", 
+    "cf.HKS_PER_FLT > 14 AND",
+    "tr.EXPR_TRIP_TYPE_ID IS NULL")
+)
+
+# Save output in two different formats
+saveRDS(object = ObservedDeepSetDetails, file = here("FisheryData", "ObservedDeepSetDetails.rds"))
+write_csv(ObservedDeepSetDetails, file = here("FisheryData", "ObservedDeepSetDetails.csv"))
+
+```
+
 
 # Close database connection
 ```{r}
