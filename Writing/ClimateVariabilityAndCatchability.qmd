@@ -1,0 +1,487 @@
+---
+title: "ClimateVariabilityAndCatchability"
+format: docx
+---
+### Revised Approach
+This basically replicates the work done in Matlab, but automatically creates a 
+table and makes it easier to reference values in-text without copying and 
+pasting (and possibly making an error).
+
+```{r, echo = FALSE, message = FALSE}
+# Set up workspace
+library(tidyverse, quietly = TRUE)
+library(tidync)
+library(here)
+```
+
+```{r, echo = FALSE}
+### Load data
+# Thanks to phind.com for help with the netCDF stuff, and to Johanna for drawing
+# my attention to the tidync package to begin with
+
+# Load climate indices
+ONI <- read_csv(here("ClimateIndices", "ONI_withPhases.csv"), show_col_types = FALSE)
+PDO <- read_csv(here("ClimateIndices", "PDO.csv"), show_col_types = FALSE)
+NPGO <- read_csv(here("ClimateIndices", "NPGO.csv"), show_col_types = FALSE)
+
+# Create a tidync objects
+Catchability_nc <- tidync(here("OceanData", "BigeyeCatchability.nc"))
+GODAS_nc <- tidync(here("OceanData", "GODAS_1deg.nc"))
+O2_nc <- tidync(here("OceanData", "O2_2mlpl_depth_1deg_noInterp.nc"))
+
+# Extract variables
+# Retaining netCDF dimensions
+Catchability_a <- Catchability_nc |>
+  hyper_array()
+GODAS_a <- GODAS_nc |>
+  hyper_array()
+O2_a <- O2_nc |>
+  hyper_array()
+# In a tidy-compatible format (not used)
+# Catchability_t <- Catchability_nc |>
+#   hyper_tibble()
+# GODAS_t <- GODAS_nc |>
+#   hyper_tibble()
+# O2_t <- O2_nc |>
+#   hyper_tibble()
+
+GODAS_Depth <- dimnames(GODAS_a$GODAS_REGRID)[3]
+Depth <- as.numeric(GODAS_Depth$LEV1_31)
+```
+
+```{r, echo = FALSE}
+### Wrangle data
+# Limit climate indices to our period of interest: 1995–2024
+ONI_9524 <- ONI |>
+  filter(YR >= 1995 & YR <= 2024) |>
+  select(ONI)
+PDO_9524 <- PDO |>
+  filter(Year >= 1995 & Year <= 2024) |>
+  select(PDO)
+NPGO_9524 <- NPGO |>
+  filter(YEAR >= 1995 & YEAR <= 2024) |>
+  select(NPGO)
+
+# Clean up
+rm(ONI, PDO, NPGO)
+```
+
+```{r, echo = FALSE, warning = FALSE}
+# NOTE: The test for Spearman rank correlations result in a LOT of warnings about 
+# ties, or equal values that can't be ranked.  Suppressing them.
+
+### Correlations
+# Empty arrays to fill
+Catchability_Spearman <- array(NA, 
+                               dim = c(dim(Catchability_a$Catchability)[1], 
+                                       dim(Catchability_a$Catchability)[2], 
+                                       3))
+Catchability_Pearson <- array(NA, 
+                               dim = c(dim(Catchability_a$Catchability)[1], 
+                                       dim(Catchability_a$Catchability)[2], 
+                                       3))
+
+O2_Spearman <- array(NA, 
+                     dim = c(dim(O2_a$GLORYS_O2_2MLPL_REGRID)[1],
+                             dim(O2_a$GLORYS_O2_2MLPL_REGRID)[2],
+                             3))
+O2_Pearson <- array(NA, 
+                    dim = c(dim(O2_a$GLORYS_O2_2MLPL_REGRID)[1], 
+                            dim(O2_a$GLORYS_O2_2MLPL_REGRID)[2], 
+                            3))
+
+D8_Spearman <- array(NA, 
+                     dim = c(dim(GODAS_a$GODAS_REGRID)[1],
+                             dim(GODAS_a$GODAS_REGRID)[2],
+                             3))
+D8_Pearson <- array(NA, 
+                    dim = c(dim(GODAS_a$GODAS_REGRID)[1], 
+                            dim(GODAS_a$GODAS_REGRID)[2], 
+                            3))
+
+T814_Spearman <- array(NA, 
+                     dim = c(dim(GODAS_a$GODAS_REGRID)[1],
+                             dim(GODAS_a$GODAS_REGRID)[2],
+                             3))
+T814_Pearson <- array(NA, 
+                    dim = c(dim(GODAS_a$GODAS_REGRID)[1], 
+                            dim(GODAS_a$GODAS_REGRID)[2], 
+                            3))
+
+for (r in seq(1, dim(Catchability_a$Catchability)[1])) {
+  for (c in seq(1, dim(Catchability_a$Catchability)[2])) {
+    ### Catchability
+    if (any(!is.na(Catchability_a$Catchability[r,c,]))) {
+      # ONI
+      Catch_Spearman_ONI <- cor.test(Catchability_a$Catchability[r,c,], ONI_9524$ONI,
+                                     use = "pairwise.complete.obs", 
+                                     method = "spearman")
+      
+      Catch_Pearson_ONI <- cor.test(Catchability_a$Catchability[r,c,], ONI_9524$ONI,
+                                    use = "pairwise.complete.obs", 
+                                    method = "pearson")
+      
+      if (Catch_Spearman_ONI$p.value < 0.05) {
+        Catchability_Spearman[r,c,1] = Catch_Spearman_ONI$estimate
+      }
+      
+      if (Catch_Pearson_ONI$p.value < 0.05) {
+        Catchability_Pearson[r,c,1] = Catch_Pearson_ONI$estimate
+      }
+      
+      # PDO
+      Catch_Spearman_PDO <- cor.test(Catchability_a$Catchability[r,c,], PDO_9524$PDO,
+                                     use = "pairwise.complete.obs", 
+                                     method = "spearman")
+      
+      Catch_Pearson_PDO <- cor.test(Catchability_a$Catchability[r,c,], PDO_9524$PDO,
+                                    use = "pairwise.complete.obs", 
+                                    method = "pearson")
+      
+      if (Catch_Spearman_PDO$p.value < 0.05) {
+        Catchability_Spearman[r,c,2] = Catch_Spearman_PDO$estimate
+      }
+      
+      if (Catch_Pearson_PDO$p.value < 0.05) {
+        Catchability_Pearson[r,c,2] = Catch_Pearson_PDO$estimate
+      }
+      
+      # NPGO
+      Catch_Spearman_NPGO <- cor.test(Catchability_a$Catchability[r,c,], NPGO_9524$NPGO,
+                                      use = "pairwise.complete.obs", 
+                                      method = "spearman")
+      
+      Catch_Pearson_NPGO <- cor.test(Catchability_a$Catchability[r,c,], NPGO_9524$NPGO,
+                                     use = "pairwise.complete.obs", 
+                                     method = "pearson")
+      
+      if (Catch_Spearman_NPGO$p.value < 0.05) {
+        Catchability_Spearman[r,c,3] = Catch_Spearman_NPGO$estimate
+      }
+      
+      if (Catch_Pearson_NPGO$p.value < 0.05) {
+        Catchability_Pearson[r,c,3] = Catch_Pearson_NPGO$estimate
+      }
+    }
+    
+    ### Depth of 2 mlpl O2
+    if (any(!is.na(O2_a$GLORYS_O2_2MLPL_REGRID[r,c,]))) {
+      # ONI
+      O2_Spearman_ONI <- cor.test(O2_a$GLORYS_O2_2MLPL_REGRID[r,c,], ONI_9524$ONI,
+                                  use = "pairwise.complete.obs", 
+                                  method = "spearman")
+      
+      O2_Pearson_ONI <- cor.test(O2_a$GLORYS_O2_2MLPL_REGRID[r,c,], ONI_9524$ONI,
+                                 use = "pairwise.complete.obs", 
+                                 method = "pearson")
+      
+      if (O2_Spearman_ONI$p.value < 0.05) {
+        O2_Spearman[r,c,1] = O2_Spearman_ONI$estimate
+      }
+      
+      if (O2_Pearson_ONI$p.value < 0.05) {
+        O2_Pearson[r,c,1] = O2_Pearson_ONI$estimate
+      }
+      
+      # PDO
+      O2_Spearman_PDO <- cor.test(O2_a$GLORYS_O2_2MLPL_REGRID[r,c,], PDO_9524$PDO,
+                                  use = "pairwise.complete.obs", 
+                                  method = "spearman")
+      
+      O2_Pearson_PDO <- cor.test(O2_a$GLORYS_O2_2MLPL_REGRID[r,c,], PDO_9524$PDO,
+                                 use = "pairwise.complete.obs", 
+                                 method = "pearson")
+      
+      if (O2_Spearman_PDO$p.value < 0.05) {
+        O2_Spearman[r,c,2] = O2_Spearman_PDO$estimate
+      }
+      
+      if (O2_Pearson_PDO$p.value < 0.05) {
+        O2_Pearson[r,c,2] = O2_Pearson_PDO$estimate
+      }
+      
+      # NPGO
+      O2_Spearman_NPGO <- cor.test(O2_a$GLORYS_O2_2MLPL_REGRID[r,c,], NPGO_9524$NPGO,
+                                   use = "pairwise.complete.obs", 
+                                   method = "spearman")
+      
+      O2_Pearson_NPGO <- cor.test(O2_a$GLORYS_O2_2MLPL_REGRID[r,c,], NPGO_9524$NPGO,
+                                  use = "pairwise.complete.obs", 
+                                  method = "pearson")
+      
+      if (O2_Spearman_NPGO$p.value < 0.05) {
+        O2_Spearman[r,c,3] = O2_Spearman_NPGO$estimate
+      }
+      
+      if (O2_Pearson_NPGO$p.value < 0.05) {
+        O2_Pearson[r,c,3] = O2_Pearson_NPGO$estimate
+      }
+    }
+    
+    ### Depth of 8 deg C water and thickness of 8-14 deg C water
+    if(any(!is.na(GODAS_a$GODAS_REGRID[r,c,,]))) {
+      # Empty matrices to fill
+      Depth8 <- matrix(NA, nrow = 360)
+      Thick814 <- matrix(NA, nrow = 360)
+      for (m in seq(1, 360, 1)) {
+        Z8_idx <- which(GODAS_a$GODAS_REGRID[r,c,,m] >= 8)
+        Z14_idx <- which(GODAS_a$GODAS_REGRID[r,c,,m] <= 14)
+        
+        Depth8[m] <- Depth[max(Z8_idx)]
+        Thick814[m] <- Depth[max(Z8_idx)] - Depth[min(Z14_idx)]
+      }
+      rm(m, Z8_idx, Z14_idx)
+      
+      # ONI
+      D8_Spearman_ONI <- cor.test(Depth8[,1], ONI_9524$ONI,
+                                  use = "pairwise.complete.obs", 
+                                  method = "spearman")
+      
+      D8_Pearson_ONI <- cor.test(Depth8, ONI_9524$ONI,
+                                 use = "pairwise.complete.obs", 
+                                 method = "pearson")
+      
+      if (!is.na(D8_Spearman_ONI$p.value) & D8_Spearman_ONI$p.value < 0.05) {
+        D8_Spearman[r,c,1] = D8_Spearman_ONI$estimate
+      }
+      
+      if (!is.na(D8_Pearson_ONI$p.value) & D8_Pearson_ONI$p.value < 0.05) {
+        D8_Pearson[r,c,1] = D8_Pearson_ONI$estimate
+      }
+      
+      # PDO
+      D8_Spearman_PDO <- cor.test(Depth8, PDO_9524$PDO,
+                                  use = "pairwise.complete.obs", 
+                                  method = "spearman")
+      
+      D8_Pearson_PDO <- cor.test(Depth8, PDO_9524$PDO,
+                                 use = "pairwise.complete.obs", 
+                                 method = "pearson")
+      
+      if (!is.na(D8_Spearman_PDO$p.value) & D8_Spearman_PDO$p.value < 0.05) {
+        D8_Spearman[r,c,2] = D8_Spearman_PDO$estimate
+      }
+      
+      if (!is.na(D8_Pearson_PDO$p.value) & D8_Pearson_PDO$p.value < 0.05) {
+        D8_Pearson[r,c,2] = D8_Pearson_PDO$estimate
+      }
+      
+      # NPGO
+      D8_Spearman_NPGO <- cor.test(Depth8, NPGO_9524$NPGO,
+                                   use = "pairwise.complete.obs", 
+                                   method = "spearman")
+      
+      D8_Pearson_NPGO <- cor.test(Depth8, NPGO_9524$NPGO,
+                                  use = "pairwise.complete.obs", 
+                                  method = "pearson")
+      
+      if (!is.na(D8_Spearman_NPGO$p.value) & D8_Spearman_NPGO$p.value < 0.05) {
+        D8_Spearman[r,c,3] = D8_Spearman_NPGO$estimate
+      }
+      
+      if (!is.na(D8_Pearson_NPGO$p.value) & D8_Pearson_NPGO$p.value < 0.05) {
+        D8_Pearson[r,c,3] = D8_Pearson_NPGO$estimate
+      }
+      
+      # ONI
+      T814_Spearman_ONI <- cor.test(Thick814, ONI_9524$ONI,
+                                    use = "pairwise.complete.obs", 
+                                    method = "spearman")
+      
+      T814_Pearson_ONI <- cor.test(Thick814, ONI_9524$ONI,
+                                   use = "pairwise.complete.obs", 
+                                   method = "pearson")
+      
+      if (T814_Spearman_ONI$p.value < 0.05) {
+        T814_Spearman[r,c,1] = T814_Spearman_ONI$estimate
+      }
+      
+      if (T814_Pearson_ONI$p.value < 0.05) {
+        T814_Pearson[r,c,1] = T814_Pearson_ONI$estimate
+      }
+      
+      # PDO
+      T814_Spearman_PDO <- cor.test(Thick814, PDO_9524$PDO,
+                                    use = "pairwise.complete.obs", 
+                                    method = "spearman")
+      
+      T814_Pearson_PDO <- cor.test(Thick814, PDO_9524$PDO,
+                                   use = "pairwise.complete.obs", 
+                                   method = "pearson")
+      
+      if (T814_Spearman_PDO$p.value < 0.05) {
+        T814_Spearman[r,c,2] = T814_Spearman_PDO$estimate
+      }
+      
+      if (T814_Pearson_PDO$p.value < 0.05) {
+        T814_Pearson[r,c,2] = T814_Pearson_PDO$estimate
+      }
+      
+      # NPGO
+      T814_Spearman_NPGO <- cor.test(Thick814, NPGO_9524$NPGO,
+                                     use = "pairwise.complete.obs", 
+                                     method = "spearman")
+      
+      T814_Pearson_NPGO <- cor.test(Thick814, NPGO_9524$NPGO,
+                                    use = "pairwise.complete.obs", 
+                                    method = "pearson")
+      
+      if (T814_Spearman_NPGO$p.value < 0.05) {
+        T814_Spearman[r,c,3] = T814_Spearman_NPGO$estimate
+      }
+      
+      if (T814_Pearson_NPGO$p.value < 0.05) {
+        T814_Pearson[r,c,3] = T814_Pearson_NPGO$estimate
+      }
+    }
+    rm(Depth8, Thick814)
+    rm(list = ls(pattern = "*_ONI"))
+    rm(list = ls(pattern = "*_PDO"))
+    rm(list = ls(pattern = "*_NPGO"))
+  }
+}
+rm(r, c)
+```
+
+```{r, echo = FALSE}
+# Make some variables to make making the table neater
+# We don't have to do this, and it could create some errors, but I think it's worth it
+C_Spear_min <- signif(apply(Catchability_Spearman, 3, min, na.rm = TRUE),2)
+C_Spear_max <- signif(apply(Catchability_Spearman, 3, max, na.rm = TRUE),2)
+C_Pear_min <- signif(apply(Catchability_Pearson, 3, min, na.rm = TRUE),2)
+C_Pear_max <- signif(apply(Catchability_Pearson, 3, max, na.rm = TRUE),2)
+
+O_Spear_min <- signif(apply(O2_Spearman, 3, min, na.rm = TRUE),2)
+O_Spear_max <- signif(apply(O2_Spearman, 3, max, na.rm = TRUE),2)
+O_Pear_min <- signif(apply(O2_Pearson, 3, min, na.rm = TRUE),2)
+O_Pear_max <- signif(apply(O2_Pearson, 3, max, na.rm = TRUE),2)
+
+D_Spear_min <- signif(apply(D8_Spearman, 3, min, na.rm = TRUE),2)
+D_Spear_max <- signif(apply(D8_Spearman, 3, max, na.rm = TRUE),2)
+D_Pear_min <- signif(apply(D8_Pearson, 3, min, na.rm = TRUE),2)
+D_Pear_max <- signif(apply(D8_Pearson, 3, max, na.rm = TRUE),2)
+
+T_Spear_min <- signif(apply(T814_Spearman, 3, min, na.rm = TRUE),2)
+T_Spear_max <- signif(apply(T814_Spearman, 3, max, na.rm = TRUE),2)
+T_Pear_min <- signif(apply(T814_Pearson, 3, min, na.rm = TRUE),2)
+T_Pear_max <- signif(apply(T814_Pearson, 3, max, na.rm = TRUE),2)
+```
+
+### Results
+Significant spatial correlations between oceanography and modes of natural climate
+variability are shown in @tbl-1 and @tbl-2. Across each oceanographic variable, 
+correlations are weakest with the ONI.  While they're strongest for the PDO for 
+catchability, correlations are strongest for the NPGO for each of the factors that 
+influence catchability: maximum depths of 2 ml l^-^^1^ O~2~ and 8°C waters and 
+thickness of 8–14 °C waters (@tbl-1, @tbl-2).
+
+The strong correlations between catchability and the PDO are likely driven by
+strong positive correlations in waters in the NW region where little fishing 
+effort takes place (@fig-1).  This pattern is somewhat replicated in correlations 
+with the thickness of 8–14 °C waters (not shown here).  The strongest and most 
+spatially coherent correlation is seen between the NPGO and the maximum depth of
+2 ml l^-^^1^ O~2~ waters (@fig-2).  Some spatial coherence is also seen in the 
+pattern of correlations between thermal habitat (maximum depth of 8°C waters and 
+thickness of 8–14 °C waters) where the edge of the North Pacific Subtropical Gyre
+is evident (@fig-3).
+
+
+|                           |               **ONI**                |              **PDO**                 |               **NPGO**               |
+|:--------------------------|:------------------------------------:|:------------------------------------:|:------------------------------------:|
+| **Catchability**          |                                      |                                      |                                      |
+| *Spearman*                |`r C_Spear_min[1]`–`r C_Spear_max[1]` |`r C_Spear_min[2]`–`r C_Spear_max[2]` |`r C_Spear_min[3]`–`r C_Spear_max[3]` |
+| *Pearson*                 |`r C_Pear_min[1]`–`r C_Pear_max[1]`   |`r C_Pear_min[2]`–`r C_Pear_max[2]`   |`r C_Pear_min[3]`–`r C_Pear_max[3]`   |
+| **2 ml l^-^^1^ O~2~ Depth** |                                      |                                      |                                      |
+| *Spearman*                |`r O_Spear_min[1]`–`r O_Spear_max[1]` |`r O_Spear_min[2]`–`r O_Spear_max[2]` |`r O_Spear_min[3]`–`r O_Spear_max[3]` |
+| *Pearson*                 |`r O_Pear_min[1]`–`r O_Pear_max[1]`   |`r O_Pear_min[2]`–`r O_Pear_max[2]`   |`r O_Pear_min[3]`–`r O_Pear_max[3]`   |
+| **8 °C Depth**            |                                      |                                      |                                      |
+| *Spearman*                |`r D_Spear_min[1]`–`r D_Spear_max[1]` |`r D_Spear_min[2]`–`r D_Spear_max[2]` |`r D_Spear_min[3]`–`r D_Spear_max[3]` |
+| *Pearson*                 |`r D_Pear_min[1]`–`r D_Pear_max[1]`   |`r D_Pear_min[2]`–`r D_Pear_max[2]`   |`r D_Pear_min[3]`–`r D_Pear_max[3]`   |
+| **8–14 °C Thickness**     |                                      |                                      |                                      |
+| *Spearman*                |`r T_Spear_min[1]`–`r T_Spear_max[1]` |`r T_Spear_min[2]`–`r T_Spear_max[2]` |`r T_Spear_min[3]`–`r T_Spear_max[3]` |
+| *Pearson*                 |`r T_Pear_min[1]`–`r T_Pear_max[1]`   |`r T_Pear_min[2]`–`r T_Pear_max[2]`   |`r T_Pear_min[3]`–`r T_Pear_max[3]`   |
+
+: Range of significant (*p* < 0.05) Spearman rank and Pearson correlations across the area of interest {#tbl-1}
+
+|                           |                      **ONI**                   |                     **PDO**                    |                   **NPGO**                     |
+|:--------------------------|:----------------------------------------------:|:----------------------------------------------:|:----------------------------------------------:|
+| **Catchability**          |                                                |                                                |                                                |
+| *Spearman*                |`r max(abs(c(C_Spear_min[1], C_Spear_max[1])))` |`r max(abs(c(C_Spear_min[2], C_Spear_max[2])))` |`r max(abs(c(C_Spear_min[3], C_Spear_max[3])))` |
+| *Pearson*                 |`r max(abs(c(C_Pear_min[1], C_Pear_max[1])))`   |`r max(abs(c(C_Pear_min[2], C_Pear_max[2])))`   |`r max(abs(c(C_Pear_min[3], C_Pear_max[3])))`   |
+| **2 ml l^-^^1^ O~2~ Depth** |                                                |                                                |                                                |
+| *Spearman*                |`r max(abs(c(O_Spear_min[1], O_Spear_max[1])))` |`r max(abs(c(O_Spear_min[2], O_Spear_max[2])))` |`r max(abs(c(O_Spear_min[3], O_Spear_max[3])))` |
+| *Pearson*                 |`r max(abs(c(O_Pear_min[1], O_Pear_max[1])))`   |`r max(abs(c(O_Pear_min[2], O_Pear_max[2])))`   |`r max(abs(c(O_Pear_min[3], O_Pear_max[3])))`   |
+| **8 °C Depth**            |                                                |                                                |                                                |
+| *Spearman*                |`r max(abs(c(D_Spear_min[1], D_Spear_max[1])))` |`r max(abs(c(D_Spear_min[2], D_Spear_max[2])))` |`r max(abs(c(D_Spear_min[3], D_Spear_max[3])))` |
+| *Pearson*                 |`r max(abs(c(D_Pear_min[1], D_Pear_max[1])))`   |`r max(abs(c(D_Pear_min[2], D_Pear_max[2])))`   |`r max(abs(c(D_Pear_min[3], D_Pear_max[3])))`   |
+| **8–14 °C Thickness**     |                                                |                                                |                                                |
+| *Spearman*                |`r max(abs(c(T_Spear_min[1], T_Spear_max[1])))` |`r max(abs(c(T_Spear_min[2], T_Spear_max[2])))` |`r max(abs(c(T_Spear_min[3], T_Spear_max[3])))` |
+| *Pearson*                 |`r max(abs(c(T_Pear_min[1], T_Pear_max[1])))`   |`r max(abs(c(T_Pear_min[2], T_Pear_max[2])))`   |`r max(abs(c(T_Pear_min[3], T_Pear_max[3])))`   |
+
+: Absolute values of strongest significant (*p* < 0.05) Spearman rank and Pearson correlations across the area of interest {#tbl-2}
+
+![Correlations between the PDO and catchability](CatchabilityPDOcorrelations.png){#fig-1}
+
+![Correlations between the NPGO and the maximum depth of 2 ml l^-^^1^ O~2~ waters](O2NPGOcorrelations.png){#fig-2}
+
+![Correlations between the NPGO and thermal habitat characteristics](TempNPGOcorrelations.png){#fig-3}
+
+
+### Discussion
+During positive phases of the NPGO, geostrophic circulation in the North Pacific
+intensifies as a result of increased wind stress curl (Di Lorenzo et al. 2008). 
+This physical forcing results in greater downwelling in the center of the NPSG (
+Di Lorenzo et al. 2008) and geographic expansion of both the gyre circulation and
+the areal extent of NPSG waters (Kavanaugh et al. 2018).  In our correlation 
+results we see that this surface-detected expansion is a three-dimensional
+expansion of the NPSG; bigeye habitat expands deeper and the edge of the gyre 
+expands outward (@fig-2, @fig-3).  This has a two-fold effect on catchability: 
+For waters in the heart of the NPSG, overlap between bigeye habitat and fishing 
+gear decreases as the gyre deepens and catchability declines; for waters at the 
+edge of the NPSG, the gyre expands and with it so too does bigeye habitat, thereby
+increasing catchability.  
+
+The fishery-related effects of the negative correlation between catchability and
+the NPGO are potentially amplified by the fishers' behavior over time.  More effort
+has been set in the CW region and north of 15°N in the SW region during months
+when the NPGO is negative.  Thus, fishers are already fishing more heavily in 
+conditions when catchability is greater (which makes sense when one considers 
+that fishers likely fish more where they catch).
+
+
+```{r, echo = FALSE}
+# See what variables there are on each grid
+# print(Catchability_nc$grid)
+# 
+# names(Catchability_nc$variable)
+# 
+# # Let's test out creating monthly averages, to see if I'm getting "group_by" correct
+# Montly_catchability <- Catchability_t |>
+#   group_by(as.numeric(Month)) |>
+#   summarise(Monthly_Mean = mean(Catchability, na.rm = TRUE))
+# 
+# 
+# Lat = ncread('../OceanData/BigeyeCatchability.nc', 'Latitude');
+# Lon = ncread('../OceanData/BigeyeCatchability.nc', 'Longitude');
+# Month = ncread('../OceanData/BigeyeCatchability.nc', 'Month');
+# Catchability = ncread('../OceanData/BigeyeCatchability.nc', 'Catchability');
+# GODAS_Depth = ncread('../OceanData/GODAS_1deg.nc', 'LEV1_31');
+# GODAS = ncread('../OceanData/GODAS_1deg.nc', 'GODAS_REGRID');
+# O2_2mlpl = ncread('../OceanData/O2_2mlpl_depth_1deg_noInterp.nc', 'GLORYS_O2_2MLPL_REGRID');
+# ONI = readtable('../ClimateIndices/ONI_withPhases.csv');
+# PDO = readtable('../ClimateIndices/PDO.csv');
+# NPGO = readtable('../ClimateIndices/NPGO.csv');
+# 
+# 
+# # Advanced spatial filtering with multiple conditions
+# filtered_data <- nc_data %>%
+#   hyper_filter(
+#     lon = between(lon, 140, 220),           # Specific longitude range
+#     lat = between(lat, -60, 0),             # Specific latitude range
+#     time = between(time, "2000-01-01", "2020-12-31"),  # Time period
+#     mask = !is.na(variable_name)              # Remove missing values
+#   ) %>%
+#   hyper_array(variable = "variable_name")
+```
+
+
