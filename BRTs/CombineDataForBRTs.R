@@ -18,7 +18,6 @@ rm(list=ls())
 
 # Set working directory
 mainDir <- here()
-setwd(mainDir)
 
 #------------------------------------------------
 # Load Data
@@ -77,3 +76,14 @@ allDat <- dataDF %>%
   rename(MonthIndex=Month, Year=Yr, Month=Mon) %>% 
   arrange(MonthIndex) %>% 
   select(Year, Month, MonthIndex, Longitude, Latitude, everything())
+
+#------------------------------------------------
+# Add bait and leader material
+# Bait
+# bait is sanma/sardine until Dec 2020, then a transition period Jan 2021 - Dec 2022, and milkfish starting Jan 2023
+allDat <- allDat %>% 
+  mutate(Bait=if_else(Year <= 2020, 'Sanma/Sardine', if_else(Year <= 2022, 'Transition', 'Milkfish')))
+# Leader
+# leader material is poorly reported prior to Jul 2000 (month 307), is wire Aug 2000 (308) - May 2021 (317), and mono starting in Jun 2021 (318)
+allDat <- allDat %>% 
+  mutate(Leader=if_else(MonthIndex <= 307, 'PoorlyReported', if_else(MonthIndex >= 318, 'Mono', 'Wire')))
