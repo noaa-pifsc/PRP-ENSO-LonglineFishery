@@ -87,11 +87,13 @@ allDat <- allDat %>%
 # Leader
 # leader material is poorly reported prior to Jul 2000 (month 67), is wire Aug 2000 (308) - May 2021 (317), and mono starting in Jun 2021 (318)
 allDat <- allDat %>% 
-  mutate(Leader=if_else(MonthIndex <= 67, 'PoorlyReported', if_else(MonthIndex >= 318, 'Mono', 'Wire')))
+  mutate(Leader=if_else(MonthIndex <= 67, 'PoorlyReported', if_else(MonthIndex >= 318, 'Mono', 'Wire'))) %>% 
+  mutate_if(is.character, as.factor) %>% 
+  data.frame()   # the BRT functions need a df not a tibble!
 
 #------------------------------------------------
 # Save file
-saveRDS(allDat, 'ENSO_BRT_data.rds')
+saveRDS(allDat, 'ENSO_BRTdata.rds')
 
 
 #------------------------------------------------
