@@ -25,7 +25,7 @@ mainDir <- here()
 ## Fishery data
 setwd(file.path(mainDir, 'FisheryData/BRT data'))
 # list all the nc data files
-ncfiles <- list.files(pattern='nc')
+ncfiles <- list.files(pattern='.nc')
 # read in all files into a list
 dataList <- lapply(ncfiles, function(x) tidync(x) %>% hyper_tibble() %>% mutate_if(is.character, as.numeric))
 # Change colnames in the oxygen data to be consistent with the other files
@@ -63,11 +63,10 @@ ClimVarClean <- function(ClimIndexFile, MonName, YrName) {
 
 # Apply function to climate index data
 npgo <- ClimVarClean('NPGO.csv', MonName = 'MONTH', YrName = 'YEAR')
-mei <- ClimVarClean('MEIv2.csv', MonName = 'SecondMonth', YrName = 'Year')
 oni <- ClimVarClean('ONI_withPhases.csv', MonName = 'CentralMonth', YrName = 'YR')
 pdo <- ClimVarClean('PDO.csv', MonName = 'Month', YrName = 'Year')
 # Combine all climate index data into one dataframe (wide format)
-climIdx <- list(pdo, npgo, oni, mei) %>% 
+climIdx <- list(pdo, npgo, oni) %>% 
   reduce(full_join, by=c('Month', 'Yr', 'Mon'))
 
 #------------------------------------------------
