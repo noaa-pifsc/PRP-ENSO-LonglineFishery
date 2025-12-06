@@ -72,6 +72,15 @@ species_list <- sort(unique(DETAIL_deep$SPECIES))
 # YELLOWFIN TUNA: 17
 # SWORDFISH: 6
 # POMFRET: 21
+
+# Adding in code to pull all PMUS species that are recorded in the logbook
+PMUS <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 
+          11, 12, 13,
+          15, 16, 17, 18, 19, 20, 21, 22,
+          24, 25) #,
+          # 37, 38) while these are listed as PMUS species, none of them are recorded
+          # including them here and down below messes things up
+          # they're 'DOGTOOTHTUNA' and 'KAWAKAWA', respectively
 ```
 
 ```{r}
@@ -81,7 +90,8 @@ library(data.table)
 # This is easiest using data.table 
 DETAIL_wide <- DETAIL_deep %>% 
   as.data.table() %>% 
-  filter(SPECIES %in% c(16,11,17,6,21)) %>% 
+  # filter(SPECIES %in% c(16,11,17,6,21)) %>% 
+  filter(SPECIES %in% PMUS) %>% 
   dcast(formula = HDR_SERIALNUM + HDR_TRIPNUM + PERMITNUM + BH_YR + BH_MON + HOOKSSET ~ SPECIES, value.var=c('NUMKEPT', 'NUMRELEASED'), fun.aggregate = sum)  %>% 
   # dcast(formula = HDR_SERIALNUM + HDR_TRIPNUM + PERMITNUM + BH_YR + BH_MON + HOOKSSET + MAXHKSFLT ~ SPECIES, value.var=c('NUMKEPT', 'NUMRELEASED'), fun.aggregate = sum) %>% 
   rename(SERIALNUM=HDR_SERIALNUM, TRIPNUM=HDR_TRIPNUM)
@@ -89,7 +99,16 @@ DETAIL_wide <- DETAIL_deep %>%
 # Combine the kept&released data with the HDR data
 DeepSets <- merge.data.table(as.data.table(HDR_deep), DETAIL_wide)
 # Rename columns (they are ordered by increasing number!). Take care here to make sure you are renaming them correctly
-setnames(DeepSets, c(13:22), paste(rep(c('SWORDFISH', 'MAHI', 'BIGEYE', 'YELLOWFIN', 'POMFRET'), 2), rep(c('KEPT', 'RELEASED'), each=5), sep='_'))
+# setnames(DeepSets, c(13:22), paste(rep(c('SWORDFISH', 'MAHI', 'BIGEYE', 'YELLOWFIN', 'POMFRET'), 2), rep(c('KEPT', 'RELEASED'), each=5), sep='_'))
+setnames(DeepSets, c(13:56), paste(rep(c('BLUEMARLIN', 'STRIPEDMARLIN', 'BLACKMARLIN',
+                                         'SAILFISH', 'SPEARFISH', 'SWORDFISH',
+                                         'BLUESHARK', 'MAKOSHARK', 'THRESHERSHARK',
+                                         'MAHI', 'OPAH', 'WAHOO',
+                                         'ALBACORE', 'BIGEYE', 'YELLOWFIN', 'OTHERTUNA', 'BLUEFIN',
+                                         'OILIFISH', 'POMFRET',
+                                         'SKIPJACK',
+                                         'WHITETIPSHARK', 'SILKYSHARK'), 2),
+                                   rep(c('KEPT', 'RELEASED'), each = 22), sep = '_'))
 DeepSets <- as.data.frame(DeepSets)
 ```
 
@@ -105,8 +124,8 @@ DeepSets <- DeepSets[-maybe_shallow_minhks,]
 
 ```{r}
 # Save output in two formats for different platforms
-saveRDS(object = DeepSets, file = here("FisheryData", "DeepSets.rds"))
-write_csv(DeepSets, file = here("FisheryData", "DeepSets.csv"))
+saveRDS(object = DeepSets, file = here("FisheryData", "DeepSets_PMUS.rds"))
+write_csv(DeepSets, file = here("FisheryData", "DeepSets_PMUS.csv"))
 ```
 
 
