@@ -61,12 +61,9 @@ tableInfo_detail
 ```{r}
 # Download the logbook data
 # Query the database - hdr data
-# res <- dbSendQuery(con, paste("SELECT TRIPNUM, RSCH_EXPMTL_CODE, PERMITNUM, BAIT, HOOKSSET, MINHKSFLT, MAXHKSFLT, BHLATDEG, BHLATMIN, BHLONGDEG, BHLONGMIN, SERIALNUM, FLEET, BH_YR, BH_MON", 
-#                               "FROM", tname_hdr,
-#                               "WHERE BH_YR >= '1995' AND RSCH_EXPMTL_CODE IS NULL AND SERIALNUM IS NOT NULL AND FLEET = 'HI'")) 
-res <- dbSendQuery(con, paste("SELECT *", 
+res <- dbSendQuery(con, paste("SELECT TRIPNUM, RSCH_EXPMTL_CODE, PERMITNUM, BAIT, HOOKSSET, MINHKSFLT, MAXHKSFLT, BHLATDEG, BHLATMIN, BHLONGDEG, BHLONGMIN, SERIALNUM, FLEET, BH_YR, BH_MON",
                               "FROM", tname_hdr,
-                              "WHERE BH_YR >= '1995' AND RSCH_EXPMTL_CODE IS NULL AND SERIALNUM IS NOT NULL AND FLEET = 'HI'")) 
+                              "WHERE BH_YR >= '1995' AND RSCH_EXPMTL_CODE IS NULL AND SERIALNUM IS NOT NULL AND FLEET = 'HI'"))
 
 logbookHDR <- dbFetch(res)
 
@@ -88,19 +85,16 @@ logbookHDR <- logbookHDR %>%
 str(logbookHDR)
 
 # Save dataset (the internet appears to unanimously agree that rds is superior to csv in terms of speed, memory, metadata preservation, and more)
-saveRDS(object = logbookHDR, file = here("FisheryData", "LogbookHDR_allFields.rds"))
+saveRDS(object = logbookHDR, file = here("FisheryData", "LogbookHDR.rds"))
 
 # Clear query results & clean up
 dbClearResult(res)
 rm(sn_idx, snl)
 
 # Query the database - detail data
-# res <- dbSendQuery(con, paste("SELECT HDR_TRIPNUM, HDR_SERIALNUM, ENGLISH_NAME, SPECIES, NUMKEPT, NUMRELEASED, FLEET, BH_YR, BH_MON, PERMITNUM, HOOKSSET, MAXHKSFLT, RSCH_EXPMTL_CODE",
-#                               "FROM", tname_detail,
-#                               "WHERE BH_YR >= '1995' AND RSCH_EXPMTL_CODE IS NULL AND HDR_SERIALNUM IS NOT NULL AND FLEET = 'HI'")) 
-res <- dbSendQuery(con, paste("SELECT *",
+res <- dbSendQuery(con, paste("SELECT HDR_TRIPNUM, HDR_SERIALNUM, ENGLISH_NAME, SPECIES, NUMFINNED, NUMKEPT, NUMRELEASED, FLEET, BH_YR, BH_MON, PERMITNUM, HOOKSSET, MAXHKSFLT, RSCH_EXPMTL_CODE",
                               "FROM", tname_detail,
-                              "WHERE BH_YR >= '1995' AND RSCH_EXPMTL_CODE IS NULL AND HDR_SERIALNUM IS NOT NULL AND FLEET = 'HI'")) 
+                              "WHERE BH_YR >= '1995' AND RSCH_EXPMTL_CODE IS NULL AND HDR_SERIALNUM IS NOT NULL AND FLEET = 'HI'"))
 
 logbookDETAIL <- dbFetch(res)
 
@@ -122,7 +116,7 @@ logbookDETAIL <- logbookDETAIL %>%
 str(logbookDETAIL)
 
 # Save dataset (the internet appears to unanimously agree that rds is superior to csv in terms of speed, memory, metadata preservation, and more)
-saveRDS(object = logbookDETAIL, file = here("FisheryData", "LogbookDETAIL_allFields.rds"))
+saveRDS(object = logbookDETAIL, file = here("FisheryData", "LogbookDETAIL.rds"))
 
 # Clear your query results
 dbClearResult(res)
