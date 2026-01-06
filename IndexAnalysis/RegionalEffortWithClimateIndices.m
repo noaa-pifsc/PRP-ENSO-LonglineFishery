@@ -173,6 +173,44 @@ NPGO_Effort_yyPlot('Southeast', 4, NPGO_9524, Regional_Effort);
 figure
 NPGO_Effort_yyPlot('Northeast', 5, NPGO_9524, Regional_Effort);
 
+% Total Effort
+figure
+colororder({'#A5AAAF', 'k'}) % y-axes colors, left to right
+yyaxis left
+stem(PDO_9524.PosPDO, '-r', 'Marker', 'none');
+hold on
+stem(PDO_9524.NegPDO, '-b', 'Marker', 'none');
+ylim([-3 3]);
+ylabel('Pacific Decadal Oscillation');
+yyaxis right
+plot(TotalEffort(:,1));
+ylim([0  6e6]);
+ylabel('Hooks');
+xlim([1 360]);
+set(gca,'XTick',1:60:360);
+set(gca,'XTickLabel',1995:5:2020);
+title('Full Fishery')
+pbaspect([2 1 1]);
+
+figure
+colororder({'#A5AAAF', 'k'}) % y-axes colors, left to right
+yyaxis left
+stem(NPGO_9524.PosNPGO, '-r', 'Marker', 'none');
+hold on
+stem(NPGO_9524.NegNPGO, '-b', 'Marker', 'none');
+ylim([-3.5 3.5]);
+ylabel('North Pacific Gyre Oscillation');
+yyaxis right
+plot(TotalEffort(:,1));
+ylim([0  6e6]);
+ylabel('Hooks');
+xlim([1 360]);
+set(gca,'XTick',1:60:360);
+set(gca,'XTickLabel',1995:5:2020);
+title('Full Fishery')
+pbaspect([2 1 1]);
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Comparison of how months and effort are distributed across phases
 % Create arrays for each mode that are month x phase x region
@@ -422,7 +460,7 @@ ylim([-3 3]);
 ylabel('Oceanic Niño Index');
 yyaxis right
 plot(fishery(:,region_number), 'Color', '#737BE6');
-ylim([0  5e6]);
+ylim([0  6e6]);
 ylabel('Hooks');
 xlim([1 360]);
 set(gca,'XTick',1:60:360);
@@ -443,7 +481,7 @@ ylim([-3 3]);
 ylabel('Pacific Decadal Oscillation');
 yyaxis right
 plot(fishery(:,region_number));
-ylim([0  5e6]);
+ylim([0  6e6]);
 ylabel('Hooks');
 xlim([1 360]);
 set(gca,'XTick',1:60:360);
@@ -453,7 +491,7 @@ pbaspect([2 1 1]);
 end
 
 
-% Function to create effort + PDO plots
+% Function to create effort + NPGO plots
 function NPGO_Effort_yyPlot(region_name, region_number, climate, fishery)
 colororder({'#A5AAAF', 'k'}) % y-axes colors, left to right
 yyaxis left
@@ -464,7 +502,7 @@ ylim([-3.5 3.5]);
 ylabel('North Pacific Gyre Oscillation');
 yyaxis right
 plot(fishery(:,region_number));
-ylim([0  5e6]);
+ylim([0  6e6]);
 ylabel('Hooks');
 xlim([1 360]);
 set(gca,'XTick',1:60:360);
