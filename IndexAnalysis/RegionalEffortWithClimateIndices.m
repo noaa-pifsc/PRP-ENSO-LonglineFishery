@@ -72,6 +72,7 @@ NPGO_9524 = addvars(NPGO_9524, NegNPGO);
 % Sum Effort each of the given regions
 % Permute so arrays are Lat x Lon x time
 Effort = permute(Effort, [2 1 3]);
+TotalEffort = squeeze(sum(Effort, [1 2], "omitnan"));
 
 % Separate Effort into regions
 NW_lat = find(Lat >= 26);
@@ -128,6 +129,10 @@ for r = 1:1:5
     N_Pearson_p(1,r) = Np(1,2);
 end
 clear r
+
+[O_tot_r, O_tot_p] = corrcoef(TotalEffort(:,1), ONI_9524.ONI, 'Rows', 'pairwise');
+[P_tot_r, P_tot_p] = corrcoef(TotalEffort(:,1), PDO_9524.PDO, 'Rows', 'pairwise');
+[N_tot_r, N_tot_p] = corrcoef(TotalEffort(:,1), NPGO_9524.NPGO, 'Rows', 'pairwise');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Time series plots for significant correlations
