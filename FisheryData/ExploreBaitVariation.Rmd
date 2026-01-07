@@ -16,7 +16,7 @@ library(zoo)
 
 ```{r}
 # Load data
-DeepSets_all <- read_csv(here("FisheryData", "DeepSets.csv"), show_col_types = FALSE)
+DeepSets_all <- read_csv(here("FisheryData", "DeepSets_AllSpecies.csv"), show_col_types = FALSE)
 ```
 
 ```{r}
@@ -179,10 +179,10 @@ no_bait
 ```{r}
 # Looking at transition period, identifying a possible third factor
 # png(here("FisheryData", "PossibleBaitFactors_2020on.png"), height=6, width=9, res=300, unit="in")
-plot(301:360, sanma[301:360], type = "l", col = "#4b8320", xlim = c(301,360), ylim = c(0,1),
+plot(301:360, sanma2$value[301:360], type = "l", col = "#4b8320", xlim = c(301,360), ylim = c(0,1),
      ylab = "Proportion of Sets Using Bait Type", xlab = " ", las = 1, xaxt = "n")
 par(new = TRUE)
-plot(301:360, milkfish[301:360], type = "l", col = "#5761c0", xlim = c(301,360), ylim = c(0,1),
+plot(301:360, milkfish2$value[(301-247):(360-247)], type = "l", col = "#5761c0", xlim = c(301,360), ylim = c(0,1),
      ylab = " ", xlab = " ", las = 1, xaxt = "n")
 par(new = TRUE)
 plot(c(301, 360), c(0.8, 0.8), type = "l", col = "#A5AAAF", xlim = c(301,360), ylim = c(0,1),
