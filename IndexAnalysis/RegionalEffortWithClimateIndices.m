@@ -213,13 +213,17 @@ pbaspect([2 1 1]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Comparison of how months and effort are distributed across phases
-% Create arrays for each mode that are month x phase x region
-ONI_array(1:size(ONI_9524,1),1:4,1:5) = NaN; % pos, neg, neutral, non
-PDO_array(1:size(PDO_9524,1),1:2,1:5) = NaN; % pos, neg
-NPGO_array(1:size(NPGO_9524,1),1:2,1:5) = NaN; % pos, neg
+% Create arrays for each mode that are month x phase x region (6 = full
+% fishery)
+ONI_array(1:size(ONI_9524,1),1:4,1:6) = NaN; % pos, neg, neutral, non
+PDO_array(1:size(PDO_9524,1),1:2,1:6) = NaN; % pos, neg
+NPGO_array(1:size(NPGO_9524,1),1:2,1:6) = NaN; % pos, neg
+
+% Add total effort to regional effort to make plotting easier
+Regional_Effort(:,6) = TotalEffort(:,1);
 
 % Loop through regions to fill
-for r = 1:1:5
+for r = 1:1:6
     % Find months with effort in given region
     mo_idx = find(Regional_Effort(:,r) > 0);
     
@@ -244,16 +248,16 @@ clear r mo_idx
 ONI_Grid(1:9,1) = 10:10:90;
 ONI_Grid(1:9,2) = 10:10:90;
 ONI_Grid(1:9,3) = 0.2;
-ONI_Grid(1:9,4) = 5.6;
+ONI_Grid(1:9,4) = 6.6;
 
 Other_Grid(1:9,1) = 10:10:90;
 Other_Grid(1:9,2) = 10:10:90;
 Other_Grid(1:9,3) = 0.6;
-Other_Grid(1:9,4) = 5.6;
+Other_Grid(1:9,4) = 6.6;
 
 % Plot
 figure
-for r = 1:1:5
+for r = 1:1:6
     % Thick line for percent of months with effort in a given phase 
     plot([0 sum(~isnan(ONI_array(:,1,r))) / sum(Regional_Effort(:,r) > 0) * 100],...
         [r r], 'LineWidth', 7, 'Color', '#FFBFBF'); % El Nino
@@ -302,16 +306,16 @@ for l = 1:1:9
     hold on
 end
 set(gca, 'YDir', 'Reverse'); 
-set(gca, 'YTick', 1.3:1:5.3);
-set(gca, 'YTickLabel', {'NW', 'CW', 'SW', 'SE', 'NE'});
+set(gca, 'YTick', 1.3:1:6.3);
+set(gca, 'YTickLabel', {'NW', 'CW', 'SW', 'SE', 'NE', 'All'});
 xlabel('Percent');
-axis([0 100 0.6 6]);
+axis([0 100 0.6 7]);
 title('Oceanic Niño Index');
 pbaspect([2 1 1]);
 clear r l
 
 figure
-for r = 1:1:5
+for r = 1:1:6
     % Thick line for percent of months with effort in a given phase 
     plot([0 sum(~isnan(PDO_array(:,1,r))) / sum(Regional_Effort(:,r) > 0) * 100],...
         [r r], 'LineWidth', 7, 'Color', '#FFBFBF'); % Positive
@@ -342,16 +346,16 @@ for l = 1:1:9
     hold on
 end
 set(gca, 'YDir', 'Reverse'); 
-set(gca, 'YTick', 1.1:1:5.1);
-set(gca, 'YTickLabel', {'NW', 'CW', 'SW', 'SE', 'NE'});
+set(gca, 'YTick', 1.1:1:6.1);
+set(gca, 'YTickLabel', {'NW', 'CW', 'SW', 'SE', 'NE', 'All'});
 xlabel('Percent');
-axis([0 100 0.2 6]);
+axis([0 100 0.2 7]);
 title('Pacific Decadal Index');
 pbaspect([2 1 1]);
 clear r l
 
 figure
-for r = 1:1:5
+for r = 1:1:6
     % Thick line for percent of months with effort in a given phase 
     plot([0 sum(~isnan(NPGO_array(:,1,r))) / sum(Regional_Effort(:,r) > 0) * 100],...
         [r r], 'LineWidth', 7, 'Color', '#FFBFBF'); % Positive
@@ -382,10 +386,10 @@ for l = 1:1:9
     hold on
 end
 set(gca, 'YDir', 'Reverse'); 
-set(gca, 'YTick', 1.1:1:5.1);
-set(gca, 'YTickLabel', {'NW', 'CW', 'SW', 'SE', 'NE'});
+set(gca, 'YTick', 1.1:1:6.1);
+set(gca, 'YTickLabel', {'NW', 'CW', 'SW', 'SE', 'NE', 'All'});
 xlabel('Percent');
-axis([0 100 0.2 6]);
+axis([0 100 0.2 7]);
 title('North Pacific Gyre Oscillation');
 pbaspect([2 1 1]);
 clear r l
@@ -513,7 +517,10 @@ end
 
 % Function to create maps of effort by phase
 function Effort_Map(effort_to_map, lat_grid_used, lon_grid_used, climate_mode_phase, panel_title)
-axesm('mercator','MapLatLimit',[10 40],'MapLonLimit',[180 230],'MeridianLabel','on','ParallelLabel','on','Grid','on');
+axesm('mercator','MapLatLimit',[10 40],'MapLonLimit',[180 230], ...
+    'MLineLocation', 10, 'PLineLocation', 10, ... % draw every 10 degrees         
+    'Grid', 'on', 'MeridianLabel','on','ParallelLabel','on', ...
+    'MLabelParallel', 10, 'MLabelLocation', 10, 'PLabelLocation', 10); % label every 10 degrees, below map 
 Ig = geoshow(lat_grid_used,lon_grid_used,log10(sum(effort_to_map(:,:,~isnan(climate_mode_phase)),3)),'DisplayType','texturemap');
 set(Ig,'AlphaData',double(~isinf(log10(sum(effort_to_map,3)))),'AlphaDataMapping','none','FaceAlpha','texturemap'); 
 plotm([20 20], [180 230], 'k');
