@@ -19,6 +19,9 @@ Shannon = ncread('../FisheryData/ShannonIndex.nc', 'Shannon Index');
 Simpson = ncread('../FisheryData/SimpsonIndex.nc', 'Simpson Index');
 Vessels = ncread('../FisheryData/TotalVessels.nc', 'Total Vessels');
 Effort = ncread('../FisheryData/TotalEffort.nc', 'Total Effort');
+ONI = readtable('../ClimateIndices/ONI_withPhases.csv');
+PDO = readtable('../ClimateIndices/PDO.csv');
+NPGO = readtable('../ClimateIndices/NPGO.csv');
 % PC:
 % Lat = ncread('..\OceanData\BigeyeCatchability.nc', 'Latitude');
 % Lon = ncread('..\OceanData\BigeyeCatchability.nc', 'Longitude');
@@ -35,6 +38,9 @@ Effort = ncread('../FisheryData/TotalEffort.nc', 'Total Effort');
 % Simpson = ncread('..\FisheryData\SimpsonIndex.nc', 'Simpson Index');
 % Vessels = ncread('..\FisheryData\TotalVessels.nc', 'Total Vessels');
 % Effort = ncread('..\FisheryData\TotalEffort.nc', 'Total Effort');
+% ONI = readtable('..\ClimateIndices\ONI_withPhases.csv');
+% PDO = readtable('..\ClimateIndices\PDO.csv');
+% NPGO = readtable('..\ClimateIndices\NPGO.csv');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Wrangle data
@@ -47,6 +53,13 @@ Shannon = permute(Shannon, [2 1 3]);
 Simpson = permute(Simpson, [2 1 3]);
 Vessels = permute(Vessels, [2 1 3]);
 Effort = permute(Effort, [2 1 3]);
+
+% Limit climate indices to our period of interest: 1995–2024
+ONI_9524 = ONI(ONI.YR >= 1995 & ONI.YR <= 2024,:);
+PDO_9524 = PDO(PDO.Year >= 1995 & PDO.Year <= 2024,:);
+NPGO_9524 = NPGO(NPGO.YEAR >= 1995 & NPGO.YEAR <= 2024,:);
+% Clean up
+clear ONI PDO NPGO
 
 % Create lat and lon grids (for plotting)
 % Horizontally stack column with latitudes
@@ -157,6 +170,34 @@ T814_RichnessPUE_p(1:length(Lat), 1:length(Lon)) = NaN;
 T814_Shannon_p(1:length(Lat), 1:length(Lon)) = NaN;
 T814_Simpson_p(1:length(Lat), 1:length(Lon)) = NaN;
 
+ONI_Richness_r(1:length(Lat), 1:length(Lon)) = NaN;
+ONI_RichnessPUE_r(1:length(Lat), 1:length(Lon)) = NaN;
+ONI_Shannon_r(1:length(Lat), 1:length(Lon)) = NaN;
+ONI_Simpson_r(1:length(Lat), 1:length(Lon)) = NaN;
+ONI_Richness_p(1:length(Lat), 1:length(Lon)) = NaN;
+ONI_RichnessPUE_p(1:length(Lat), 1:length(Lon)) = NaN;
+ONI_Shannon_p(1:length(Lat), 1:length(Lon)) = NaN;
+ONI_Simpson_p(1:length(Lat), 1:length(Lon)) = NaN;
+
+PDO_Richness_r(1:length(Lat), 1:length(Lon)) = NaN;
+PDO_RichnessPUE_r(1:length(Lat), 1:length(Lon)) = NaN;
+PDO_Shannon_r(1:length(Lat), 1:length(Lon)) = NaN;
+PDO_Simpson_r(1:length(Lat), 1:length(Lon)) = NaN;
+PDO_Richness_p(1:length(Lat), 1:length(Lon)) = NaN;
+PDO_RichnessPUE_p(1:length(Lat), 1:length(Lon)) = NaN;
+PDO_Shannon_p(1:length(Lat), 1:length(Lon)) = NaN;
+PDO_Simpson_p(1:length(Lat), 1:length(Lon)) = NaN;
+
+NPGO_Richness_r(1:length(Lat), 1:length(Lon)) = NaN;
+NPGO_RichnessPUE_r(1:length(Lat), 1:length(Lon)) = NaN;
+NPGO_Shannon_r(1:length(Lat), 1:length(Lon)) = NaN;
+NPGO_Simpson_r(1:length(Lat), 1:length(Lon)) = NaN;
+NPGO_Richness_p(1:length(Lat), 1:length(Lon)) = NaN;
+NPGO_RichnessPUE_p(1:length(Lat), 1:length(Lon)) = NaN;
+NPGO_Shannon_p(1:length(Lat), 1:length(Lon)) = NaN;
+NPGO_Simpson_p(1:length(Lat), 1:length(Lon)) = NaN;
+
+
 for r = 1:1:length(Lat)
     for c = 1:1:length(Lon) 
         Catch = squeeze(Catchability(r, c, :));
@@ -265,6 +306,57 @@ for r = 1:1:length(Lat)
         T814_Simpson_r(r, c) = Trsi(1,2);
         T814_Simpson_p(r, c) = Tpsi(1,2);
 
+        % ONI 
+        [ONIrr, ONIpr] = corrcoef(ONI_9524.ONI, Rich, 'Rows', 'pairwise');
+        ONI_Richness_r(r, c) = ONIrr(1,2);
+        ONI_Richness_p(r, c) = ONIpr(1,2);
+
+        [ONIrrpue, ONIprpue] = corrcoef(ONI_9524.ONI, RichPUE, 'Rows', 'pairwise');
+        ONI_RichnessPUE_r(r, c) = ONIrrpue(1,2);
+        ONI_RichnessPUE_p(r, c) = ONIprpue(1,2);
+
+        [ONIrsh, ONIpsh] = corrcoef(ONI_9524.ONI, Shan, 'Rows', 'pairwise');
+        ONI_Shannon_r(r, c) = ONIrsh(1,2);
+        ONI_Shannon_p(r, c) = ONIpsh(1,2);
+
+        [ONIrsi, ONIpsi] = corrcoef(ONI_9524.ONI, Simp, 'Rows', 'pairwise');
+        ONI_Simpson_r(r, c) = ONIrsi(1,2);
+        ONI_Simpson_p(r, c) = ONIpsi(1,2);
+
+        % PDO 
+        [PDOrr, PDOpr] = corrcoef(PDO_9524.PDO, Rich, 'Rows', 'pairwise');
+        PDO_Richness_r(r, c) = PDOrr(1,2);
+        PDO_Richness_p(r, c) = PDOpr(1,2);
+
+        [PDOrrpue, PDOprpue] = corrcoef(PDO_9524.PDO, RichPUE, 'Rows', 'pairwise');
+        PDO_RichnessPUE_r(r, c) = PDOrrpue(1,2);
+        PDO_RichnessPUE_p(r, c) = PDOprpue(1,2);
+
+        [PDOrsh, PDOpsh] = corrcoef(PDO_9524.PDO, Shan, 'Rows', 'pairwise');
+        PDO_Shannon_r(r, c) = PDOrsh(1,2);
+        PDO_Shannon_p(r, c) = PDOpsh(1,2);
+
+        [PDOrsi, PDOpsi] = corrcoef(PDO_9524.PDO, Simp, 'Rows', 'pairwise');
+        PDO_Simpson_r(r, c) = PDOrsi(1,2);
+        PDO_Simpson_p(r, c) = PDOpsi(1,2);
+
+        % NPGO 
+        [NPGOrr, NPGOpr] = corrcoef(NPGO_9524.NPGO, Rich, 'Rows', 'pairwise');
+        NPGO_Richness_r(r, c) = NPGOrr(1,2);
+        NPGO_Richness_p(r, c) = NPGOpr(1,2);
+
+        [NPGOrrpue, NPGOprpue] = corrcoef(NPGO_9524.NPGO, RichPUE, 'Rows', 'pairwise');
+        NPGO_RichnessPUE_r(r, c) = NPGOrrpue(1,2);
+        NPGO_RichnessPUE_p(r, c) = NPGOprpue(1,2);
+
+        [NPGOrsh, NPGOpsh] = corrcoef(NPGO_9524.NPGO, Shan, 'Rows', 'pairwise');
+        NPGO_Shannon_r(r, c) = NPGOrsh(1,2);
+        NPGO_Shannon_p(r, c) = NPGOpsh(1,2);
+
+        [NPGOrsi, NPGOpsi] = corrcoef(NPGO_9524.NPGO, Simp, 'Rows', 'pairwise');
+        NPGO_Simpson_r(r, c) = NPGOrsi(1,2);
+        NPGO_Simpson_p(r, c) = NPGOpsi(1,2);
+
     end
 end
 clear r c CP* DP* OP* Depth8 Depth14 Thick814 Catch O2 Hooks
@@ -294,6 +386,18 @@ figure
 Corr_Map(lat_grid, lon_grid, T814_Shannon_r, T814_Shannon_p, Vessels_total, ...
     0.05, -1, 1, "Pearson Correlation: Thickness of 8–14-deg Waters and Shannon Index")
 
+figure
+Corr_Map(lat_grid, lon_grid, ONI_Shannon_r, ONI_Shannon_p, Vessels_total, ...
+    0.05, -1, 1, "Pearson Correlation: ONI and Shannon Index")
+
+figure
+Corr_Map(lat_grid, lon_grid, PDO_Shannon_r, PDO_Shannon_p, Vessels_total, ...
+    0.05, -1, 1, "Pearson Correlation: PDO and Shannon Index")
+
+figure
+Corr_Map(lat_grid, lon_grid, NPGO_Shannon_r, NPGO_Shannon_p, Vessels_total, ...
+    0.05, -1, 1, "Pearson Correlation: NPGO and Shannon Index")
+
 % Simpson Index
 figure
 Corr_Map(lat_grid, lon_grid, Catch_Simpson_r, Catch_Simpson_p, Vessels_total, ...
@@ -314,6 +418,18 @@ Corr_Map(lat_grid, lon_grid, D14_Simpson_r, D14_Simpson_p, Vessels_total, ...
 figure
 Corr_Map(lat_grid, lon_grid, T814_Simpson_r, T814_Simpson_p, Vessels_total, ...
     0.05, -1, 1, "Pearson Correlation: Thickness of 8–14-deg Waters and Simpson Index")
+
+figure
+Corr_Map(lat_grid, lon_grid, ONI_Simpson_r, ONI_Simpson_p, Vessels_total, ...
+    0.05, -1, 1, "Pearson Correlation: ONI and Simpson Index")
+
+figure
+Corr_Map(lat_grid, lon_grid, PDO_Simpson_r, PDO_Simpson_p, Vessels_total, ...
+    0.05, -1, 1, "Pearson Correlation: PDO and Simpson Index")
+
+figure
+Corr_Map(lat_grid, lon_grid, NPGO_Simpson_r, NPGO_Simpson_p, Vessels_total, ...
+    0.05, -1, 1, "Pearson Correlation: NPGO and Simpson Index")
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Functions
