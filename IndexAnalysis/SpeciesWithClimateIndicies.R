@@ -1,7 +1,7 @@
 # Diversity metrics and climate index correlations
 
 # Correlations between climate indicies and % bigeye, yellowfin, swordfish, mahi, and pomfret, as well as CPUE for the same species
-# Translating Phoebe's matlab code for consistency. Admittedly this is a lot more difficult than I thought. I don't remember matlab much any more
+# Translating Phoebe's CatchDiversityWithClimateIndices.m matlab code for consistency.
 
 #-------------------------------------------------------------------------------
 # Load libraries and set up the environment
@@ -12,20 +12,23 @@ library(readr)
 library(terra)
 library(tidyterra)
 library(ggplot2)
+library(rnaturalearth)
 
-myDir <- here()
+# set data directory
+dataDir <- here('FisheryData', 'BRT data')
 
 #-------------------------------------------------------------------------------
 # Read in the data
 #-------------------------------------------------------------------------------
 # climate indices
-oni <- read.csv('FisheryData/BRT data/ONI_withPhases.csv') %>% 
+setwd(dataDir)
+oni <- read.csv('ONI_withPhases.csv') %>% 
   filter(YR >= 1995 & YR <= 2024) %>% 
   rename(Year=YR, Month=CentralMonth)
-npgo <- read.csv('FisheryData/BRT data/NPGO.csv') %>% 
+npgo <- read.csv('NPGO.csv') %>% 
   filter(YEAR >= 1995 & YEAR <= 2024) %>% 
   rename(Year=YEAR, Month=MONTH)
-pdo <- read.csv('FisheryData/BRT data/PDO.csv') %>% 
+pdo <- read.csv('PDO.csv') %>% 
   filter(Year >= 1995 & Year <= 2024)
 # join indices together
 climIdx <- left_join(oni, pdo) %>% 
@@ -34,14 +37,14 @@ climIdx <- left_join(oni, pdo) %>%
 
 # Fisheries data
 # terra reads in the months as depth. Doesn't affect anything but just be aware
-bet <- rast('FisheryData/BRT data/TotalBigeyeCaught.nc')
-swo <- rast('FisheryData/BRT data/TotalSwordfishCaught.nc')
-yft <- rast('FisheryData/BRT data/TotalYellowfinCaught.nc')
-pom <- rast('FisheryData/BRT data/TotalPomfretCaught.nc')
-mahi <- rast('FisheryData/BRT data/TotalMahiCaught.nc')
-pmus <- rast('FisheryData/BRT data/TotalPMUS.nc')
-effort <- rast('FisheryData/BRT data/TotalEffort.nc')/1000
-vessels <- rast('FisheryData/BRT data/TotalVessels.nc')
+bet <- rast('TotalBigeyeCaught.nc')
+swo <- rast('TotalSwordfishCaught.nc')
+yft <- rast('TotalYellowfinCaught.nc')
+pom <- rast('TotalPomfretCaught.nc')
+mahi <- rast('TotalMahiCaught.nc')
+pmus <- rast('TotalPMUS.nc')
+effort <- rast('TotalEffort.nc')/1000
+vessels <- rast('TotalVessels.nc')
 fish <- list(bet, swo, yft, pom, mahi, pmus, effort)
 names(fish) <- c('BET', 'SWO', 'YFT', 'POM', 'MAHI', 'PMUS', 'EFRT')
 
@@ -59,29 +62,30 @@ for (i in 1:5) {
   names(prop)[i] <- names(fish)[i]
 }
 
-# Sum over space each year-month
+# Average over space each year-month
 # CPUE
 cpueTS <- list()
 for (i in 1:6) {
-  cpueTS[[i]] <- global(cpue[[i]], c('mean', 'sum'), na.rm=T)
+  cpueTS[[i]] <- global(cpue[[i]], c('mean'), na.rm=T)
   cpueTS[[i]]$MonthIndex <- parse_number(rownames(cpueTS[[i]]))
   names(cpueTS)[i] <- names(cpue)[i]
 }
-# Proportion fish by species
+# Percent catch by species
 propTS <- list()
 for (i in 1:5) {
-  propTS[[i]] <- global(prop[[i]], c('mean', 'sum'), na.rm=T)
+  propTS[[i]] <- global(prop[[i]], c('mean'), na.rm=T)
   propTS[[i]]$MonthIndex <- parse_number(rownames(propTS[[i]]))
   names(propTS)[i] <- names(prop)[i]
 }
 
-# Climatologies
+# Climatologies (average over time)
+# CPUE
 cpueClim <- list()
 for (i in 1:6) {
   cpueClim[[i]] <- mean(cpue[[i]], na.rm=T)
   names(cpueClim)[i] <- names(cpue)[i]
 }
-
+# Percent catch by species
 propClim <- list()
 for (i in 1:5) {
   propClim[[i]] <- mean(prop[[i]], na.rm=T)
@@ -91,6 +95,7 @@ for (i in 1:5) {
 effortClim <- mean(effort, na.rm=T)
 vesselClim <- sum(vessels, na.rm=T)
 # Make a mask for confidentiality of maps
+# any location with <3 vessels is set to NA, all others to 1
 vesselClim[vesselClim < 3] <- NA
 vesselClim[vesselClim >2] <- 1
 
@@ -99,21 +104,27 @@ vesselClim[vesselClim >2] <- 1
 #-------------------------------------------------------------------------------
 # The R equivalent of matlabs 'corrcoef' is cor() but it doesn't give p-values, so I'm using cor.test() instead
 # the p.value and estimate variables in the output holds the p-value and correlation respectively
-
+# Set up empty dataframe
 corVals <- data.frame(spp=NA, clim=NA, var=NA, r=NA, p=NA)
+# Make vectors of species, climate variables 
 species <- names(fish)[1:5]
 climVars <- c('ONI', 'PDO', 'NPGO')
-evalVars <- c(rep('CPUE',15), rep('Percent',15))
+# make vectors longer since we are doing both CPUE and % of catch
+evalVars <- c(rep('CPUE',(length(climVars)*length(species))), rep('Percent',,(length(climVars)*length(species))))
 species <- c(species, species)
 idx=1
+# Loop through all species (twice), first for CPUE then % of catch
 for (j in seq_along(species)) {
+  # Select which metric dataset is used
   if (j <= 5) {
     dat <- cpueTS[[species[j]]] 
   } else { 
     dat <- propTS[[species[j]]]
   }
+  # Loop through climate variables
+  # Use Pearson correlation becauase that is what corrcoef in matlab uses to stay consistent
   for (i in seq_along(climVars)) {
-    corTest <- cor.test(dat$sum, climIdx[,which(names(climIdx) == climVars[i])], method = 'pearson')
+    corTest <- cor.test(dat$mean, climIdx[,which(names(climIdx) == climVars[i])], method = 'pearson')
     corVals[idx,1] <- species[j]
     corVals[idx,2] <- climVars[i]
     corVals[idx,3] <- evalVars[idx]
@@ -122,10 +133,13 @@ for (j in seq_along(species)) {
     idx=idx+1
   }
 }
+# Make a smaller dataframe with just the significant (< 0.01) correlations
 corValsSigOnly <- corVals[which(corVals$p < 0.01),]
 
 ## plots
-# Make a timeseries plot with CPUE and climate index
+setwd(here())
+# Function to make a timeseries plot with CPUE and climate index
+# Function is set up to do either CPUE or proportion of catch, not both in the same call. 
 climVarTSplot <- function(TSData, climData, corData, fishUnit) {
   for (i in 1:nrow(corData)) {
     # Pull out the right data
@@ -168,21 +182,24 @@ climVarTSplot <- function(TSData, climData, corData, fishUnit) {
 }
 
 # Proportion of catch
-climVarTSplot(TSData = propTS, climData = climIdx, corData = corValsSigOnly[6:11,], fishUnit = 'of PMUS catch')
+climVarTSplot(TSData = propTS, climData = climIdx, corData = corValsSigOnly[which(corValsSigOnly$var == 'Percent'),], fishUnit = 'of PMUS catch')
 # CPUE
-climVarTSplot(TSData = cpueTS, climData = climIdx, corData = corValsSigOnly[1:5,], fishUnit = '(fish per 1000 hooks)')
+climVarTSplot(TSData = cpueTS, climData = climIdx, corData = corValsSigOnly[which(corValsSigOnly$var == 'CPUE'),], fishUnit = '(fish per 1000 hooks)')
 
 # Make climatology plot
-world <- rnaturalearth::ne_countries(country = 'united states of america', scale = 'medium', returnclass = 'sf') %>%
-  dplyr::select(1) %>%
-  sf::st_transform(crs = crs(cpueClim))
+# Get land polygon. Can be done either with the 'borders' function during plotting, or beforehand with data from naturalearth
+world <-ne_countries(country = 'united states of america', scale = 'medium', returnclass = 'sf') %>%
+  select(1) #%>%
+  #sf::st_transform(crs = crs(cpueClim))
 worldcrop <- sf::st_crop(world, c(xmin=-180, xmax=-130, ymin=10,ymax=40))
 
+# Loop through all species for both CPUE and % of catch
 clims <- c(cpueClim, propClim)
 for (i in 1:length(clims)) {
   # Apply confidentiality mask
   myDat <- clims[[i]]*vesselClim 
   sppNames <- names(clims)
+  # name outfile
   outFile <- ifelse(i <= 6, paste0('ENSO_', sppNames[i], '_CPUE_meanClims.png'), paste0('ENSO_', sppNames[i], '_percCatch_meanClims.png'))
   print(outFile)
   # Make the plot
