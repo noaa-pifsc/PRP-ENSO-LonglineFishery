@@ -48,6 +48,9 @@ vessels <- rast('TotalVessels.nc')
 fish <- list(bet, swo, yft, pom, mahi, pmus, effort)
 names(fish) <- c('BET', 'SWO', 'YFT', 'POM', 'MAHI', 'PMUS', 'EFRT')
 
+#-------------------------------------------------------------------------------
+# Calculate fisheries metrics
+#-------------------------------------------------------------------------------
 # Calculate CPUE
 cpue <- list()
 for (i in 1:6) {
@@ -136,7 +139,9 @@ for (j in seq_along(species)) {
 # Make a smaller dataframe with just the significant (< 0.01) correlations
 corValsSigOnly <- corVals[which(corVals$p < 0.01),]
 
-## plots
+#-------------------------------------------------------------------------------
+# Plots
+#-------------------------------------------------------------------------------
 setwd(here())
 # Function to make a timeseries plot with CPUE and climate index
 # Function is set up to do either CPUE or proportion of catch, not both in the same call. 
@@ -186,6 +191,7 @@ climVarTSplot(TSData = propTS, climData = climIdx, corData = corValsSigOnly[whic
 # CPUE
 climVarTSplot(TSData = cpueTS, climData = climIdx, corData = corValsSigOnly[which(corValsSigOnly$var == 'CPUE'),], fishUnit = '(fish per 1000 hooks)')
 
+#-------------------------------------------------------------------------------
 # Make climatology plot
 # Get land polygon. Can be done either with the 'borders' function during plotting, or beforehand with data from naturalearth
 world <-ne_countries(country = 'united states of america', scale = 'medium', returnclass = 'sf') %>%
@@ -206,6 +212,9 @@ for (i in 1:length(clims)) {
   p <- ggplot() +
     geom_spatraster(data=myDat) + 
     geom_sf(data=worldcrop, fill='gray30', color='white') +
+    geom_segment(aes(x = c(-180), xend = c(-150), y = c(20), yend = 20)) +     # these are the lines dividing the area up into regions from Phoebe's paper
+    geom_segment(aes(x = c(-180), xend = c(-150), y = c(26), yend = 26)) + 
+    geom_vline(xintercept = -150) +    
     #borders('world', xlim=c(-180,-130), ylim=c(10,40), fill='darkgray', colour='white', linewidth=0.25) +
     coord_sf(expand = FALSE) +
     scale_fill_viridis_c(name = ifelse(i <= 6, paste(sppNames[i], 'CPUE'), paste(sppNames[i], '% of Catch')), na.value = 'transparent') +
