@@ -1,0 +1,122 @@
+---
+title: "IndexTable"
+format: docx
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Purpose
+
+The purpose of this code is to generate a table that shows the range and
+distribution of climate modes and effort across them.
+
+This script borrows code from:
+IndexAnalysis/SpeciesWithClimateIndicies.R (thanks, Johanna!)
+
+```{r, echo = FALSE, message = FALSE}
+# Set up environment
+library(tidyverse, quietly = TRUE)
+library(here)
+library(tidync)
+library(reshape2)
+```
+
+```{r, echo = FALSE}
+# Load and wrangle data
+# when loading climate indices: 
+# filter to period of interest, create common column names, and combine
+oni <- read_csv(here("ClimateIndices", "ONI_withPhases.csv"), show_col_types = FALSE) |>
+  filter(YR >= 1995 & YR <= 2024) |> 
+  rename(Year=YR, Month=CentralMonth)
+npgo <- read_csv(here("ClimateIndices", "NPGO.csv"), show_col_types = FALSE) |>
+  filter(YEAR >= 1995 & YEAR <= 2024) |>
+  rename(Year=YEAR, Month=MONTH)
+pdo <- read_csv(here("ClimateIndices", "PDO.csv"), show_col_types = FALSE) |>
+  filter(Year >= 1995 & Year <= 2024)
+# join indices together
+climIdx <- left_join(oni, pdo, by = join_by(Month, Year)) |>
+  left_join(npgo, by = join_by(Month, Year)) |> 
+  mutate(MonthIndex=1:360)
+
+# Limit the significant figures in the PDO and NPGO, for table crafting
+climIdx$PDO <- signif(climIdx$PDO, 3)
+climIdx$NPGO <- signif(climIdx$NPGO, 3)
+
+# Tidy up
+rm(npgo, oni, pdo)
+
+# Create tidync objects
+Effort_nc <- tidync(here("FisheryData", "TotalEffort.nc"))
+
+# Extract variables
+# Retaining netCDF dimensions
+# Effort_a <- Effort_nc |>
+#   hyper_array()
+# In a tidy-compatible format
+Effort_t <- Effort_nc |>
+  hyper_tibble()
+
+# Correct lat, lon, and month to be numbers instead of characters
+Effort_t$Longitude <- as.numeric(Effort_t$Longitude)
+Effort_t$Latitude <- as.numeric(Effort_t$Latitude)
+Effort_t$Month <- as.numeric(Effort_t$Month)
+
+# Sum effort by month
+Effort_monthly <- Effort_t |>
+  group_by(Month) |>
+  summarise(EffortSummed = sum(`Total Effort`))
+```
+
+```{r, echo = FALSE}
+# Create indices to create variables for the table
+Nino <- which(!is.na(climIdx$ElNino))
+Nina <- which(!is.na(climIdx$LaNina))
+Neut <- which(!is.na(climIdx$Neutral))
+Nada <- which(is.na(climIdx$ElNino) & is.na(climIdx$LaNina) & is.na(climIdx$Neutral))
+PosPDO <- which(climIdx$PDO > 0)
+NegPDO <- which(climIdx$PDO < 0)
+PosNPGO <- which(climIdx$NPGO > 0)
+NegNPGO <- which(climIdx$NPGO < 0)
+TotEffort <- sum(Effort_monthly$EffortSummed)
+```
+
+Doing this as three tables to keep the line length reasonable. But they
+can be combined after rendering. The dividing by 3.6 is a shortened
+version of dividing by 360 and multiplying by 100 (total months,
+transformed to %).  Something I learned: breaking the lines within the R call
+preserves the table format, but breaking elsewhere affects formatting.
+
+|        |  **ONI**  |  **ONI**  |  **ONI**  |  **ONI**  |
+|:------:|:---------:|:---------:|:---------:|:---------:|
+|        |   Pos     |    Neg    | Neutral   |    None   |
+| Range  |`r min(climIdx$ONI[Nino])` - `r max(climIdx$ONI[Nino])` | `r 
+min(climIdx$ONI[Nina])` - `r max(climIdx$ONI[Nina])` | `r 
+min(climIdx$ONI[Neut])` - `r max(climIdx$ONI[Neut])` | `r 
+min(climIdx$ONI[Nada])` - `r max(climIdx$ONI[Nada])` |
+| Months |`r length(Nino)` (`r signif(length(Nino)/3.60,2)`%) | `r 
+length(Nina)` (`r signif(length(Nina)/3.60,2)`%) |`r 
+length(Neut)` (`r signif(length(Neut)/3.60,2)`%) | `r 
+length(Nada)` (`r signif(length(Nada)/3.60,2)`%) |
+| Effort |`r signif(sum(Effort_monthly$EffortSummed[Nino])/TotEffort*100,2)`% | `r signif(sum(Effort_monthly$EffortSummed[Nina])/TotEffort*100,2)`% | `r signif(sum(Effort_monthly$EffortSummed[Neut])/TotEffort*100,2)`% | `r signif(sum(Effort_monthly$EffortSummed[Nada])/TotEffort*100,2)`% |
+
+
+|        |  **PDO**  | **PDO** |
+|:------:|:---------:|:-------:|
+|        |    Pos    |   Neg   |
+| Range  |`r min(climIdx$PDO[PosPDO])` - `r max(climIdx$PDO[PosPDO])` | `r 
+min(climIdx$PDO[NegPDO])` - `r max(climIdx$PDO[NegPDO])` |
+| Months | `r length(PosPDO)` (`r signif(length(PosPDO)/3.60,2)`%) | `r 
+length(NegPDO)` (`r signif(length(NegPDO)/3.60,2)`%) |
+| Effort | `r signif(sum(Effort_monthly$EffortSummed[PosPDO])/TotEffort*100,2)`% | `r signif(sum(Effort_monthly$EffortSummed[NegPDO])/TotEffort*100,2)`% |
+ 
+ 
+|        | **NPGO** | **NPGO** |
+|:------:|:---------:|:-------:|
+|        |    Pos    |   Neg   |
+| Range  |`r min(climIdx$NPGO[PosNPGO])` - `r max(climIdx$NPGO[PosNPGO])` | `r 
+min(climIdx$NPGO[NegNPGO])` - `r max(climIdx$NPGO[NegNPGO])` |
+| Months | `r length(PosNPGO)` (`r signif(length(PosNPGO)/3.60,2)`%) | `r 
+length(NegNPGO)` (`r signif(length(NegNPGO)/3.60,2)`%) |
+| Effort | `r signif(sum(Effort_monthly$EffortSummed[PosNPGO])/TotEffort*100,2)`% | `r signif(sum(Effort_monthly$EffortSummed[NegNPGO])/TotEffort*100,2)`% |
+
