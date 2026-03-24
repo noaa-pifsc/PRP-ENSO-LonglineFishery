@@ -106,32 +106,48 @@ PMUSCPUE = PMUS ./ Effort * 1000;
 figure
 Corr_Map(lat_grid, lon_grid, PDO_9524.PDO, BigeyeCPUE, Vessels_total, 0.05, ...
     -1, 1, 'PDO and Bigeye CPUE')
-saveas(gcf, 'PDO_BigeyeCPUE_Pearson.pdf')
+% saveas(gcf, 'PDO_BigeyeCPUE_Pearson.pdf')
 
 figure
 Corr_Map(lat_grid, lon_grid, PDO_9524.PDO, PomfretCPUE, Vessels_total, 0.05, ...
     -1, 1, 'PDO and Pomfret CPUE')
-saveas(gcf, 'PDO_PomfretCPUE_Pearson.pdf')
+% saveas(gcf, 'PDO_PomfretCPUE_Pearson.pdf')
 
 figure
 Corr_Map(lat_grid, lon_grid, PDO_9524.PDO, MahiCPUE, Vessels_total, 0.05, ...
     -1, 1, 'PDO and Mahi CPUE')
-saveas(gcf, 'PDO_MahiCPUE_Pearson.pdf')
+% saveas(gcf, 'PDO_MahiCPUE_Pearson.pdf')
 
 figure
 Corr_Map(lat_grid, lon_grid, NPGO_9524.NPGO, BigeyeCPUE, Vessels_total, 0.05, ...
     -1, 1, 'NPGO and Bigeye CPUE')
-saveas(gcf, 'NPGO_BigeyeCPUE_Pearson.pdf')
+% saveas(gcf, 'NPGO_BigeyeCPUE_Pearson.pdf')
 
 figure
 Corr_Map(lat_grid, lon_grid, NPGO_9524.NPGO, YellowfinCPUE, Vessels_total, 0.05, ...
     -1, 1, 'NPGO and Yellowfin CPUE')
-saveas(gcf, 'NPGO_YellowfinCPUE_Pearson.pdf')
+% saveas(gcf, 'NPGO_YellowfinCPUE_Pearson.pdf')
 
 figure
 Corr_Map(lat_grid, lon_grid, NPGO_9524.NPGO, MahiCPUE, Vessels_total, 0.05, ...
     -1, 1, 'NPGO and Mahi CPUE')
-saveas(gcf, 'NPGO_MahiCPUE_Pearson.pdf')
+% saveas(gcf, 'NPGO_MahiCPUE_Pearson.pdf')
+
+figure
+Cx_Cor_Map(lat_grid, lon_grid, PDO_9524.PDO, BigeyeCPUE, Depth8, NaN, ...
+    Vessels_total, 0.05, -1, 1, 'PDO and Bigeye CPUE, x: 8-deg, +: NaN')
+saveas(gcf, 'PDO_BigeyeCPUE_D8_Pearson.pdf')
+
+figure
+Cx_Cor_Map(lat_grid, lon_grid, PDO_9524.PDO, PomfretCPUE, Depth8, NaN, ...
+    Vessels_total, 0.05, -1, 1, 'PDO and Pomfret CPUE, x: 8-deg, +: NaN')
+saveas(gcf, 'PDO_PomfretCPUE_D8_Pearson.pdf')
+
+figure
+Cx_Cor_Map(lat_grid, lon_grid, PDO_9524.PDO, MahiCPUE, Depth8, NaN, ...
+    Vessels_total, 0.05, -1, 1, 'PDO and Mahi CPUE, x: 8-deg, +: NaN')
+saveas(gcf, 'PDO_MahiCPUE_D8_Pearson.pdf')
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Functions
 % Function to calculate correlations and plot significant ones
@@ -189,54 +205,59 @@ tightmap
 end
 
 % Function to calculate correlations and plot significant ones, plus
-% overlay contours and do some hatching (kind of)
-function Corr_Ctr_Map(lat_grid_used, lon_grid_used, env_var, catch_var, ...
-    ctr_var, vessels, sig_level, min_val, max_val, map_title)
+% do some hatching (kind of)
+function Cx_Cor_Map(lat_grid_used, lon_grid_used, env_var, catch_var, ...
+    cor_var1, cor_var2, vessels, sig_level, min_val, max_val, map_title)
 
 % Empty matrices to fill
 r_vals(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
 p_vals(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
 
-r_ctr(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
-p_ctr(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
+r_x1(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
+p_x1(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
 
-x_cor(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
-x_anti_cor(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
+r_x2(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
+p_x2(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
+
+x_cor1(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
+x_anti_cor1(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
+
+x_cor2(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
+x_anti_cor2(1:size(lat_grid_used,1), 1:size(lon_grid_used,2)) = NaN;
 
 % Pearson correlation, loop through grid cells
 for r = 1:1:size(lat_grid_used,1)
     for c = 1:1:size(lon_grid_used,2)
 
-        % Climate indices
-        if size(env_var, 3) == 1
-            [C_r, C_p] = corrcoef(env_var(:,1), catch_var(r,c,:), 'Rows', 'pairwise');
-            r_vals(r, c) = C_r(1,2);
-            p_vals(r, c) = C_p(1,2);
+        [C_r, C_p] = corrcoef(env_var(:,1), catch_var(r,c,:), 'Rows', 'pairwise');
+        r_vals(r, c) = C_r(1,2);
+        p_vals(r, c) = C_p(1,2);
 
-            [C_rct, C_pct] = corrcoef(env_var(:,1), ctr_var(r,c,:), 'Rows', 'pairwise');
-            r_ctr(r, c) = C_rct(1,2);
-            p_ctr(r, c) = C_pct(1,2);
-        end
+        [C_rct1, C_pct1] = corrcoef(env_var(:,1), cor_var1(r,c,:), 'Rows', 'pairwise');
+        r_x1(r, c) = C_rct1(1,2);
+        p_x1(r, c) = C_pct1(1,2);
 
-        % Oceanographic variables
-        if size(env_var, 3) == 360
-            [C_r, C_p] = corrcoef(env_var(r,c,:), catch_var(r,c,:), 'Rows', 'pairwise');
-            r_vals(r, c) = C_r(1,2);
-            p_vals(r, c) = C_p(1,2);
+        % Confirm there's a second variable
+        if ~isnan(cor_var2)
+            [C_rct2, C_pct2] = corrcoef(env_var(:,1), cor_var2(r,c,:), 'Rows', 'pairwise');
+            r_x2(r, c) = C_rct2(1,2);
+            p_x2(r, c) = C_pct2(1,2);
         end
+        
     end
 end
 
-% Climatology for contouring
-ctr_climo = mean(ctr_var, 3, "omitnan");
-
 % Only plot significant values
 r_vals(p_vals >= sig_level) = NaN;
-r_ctr(p_ctr >= sig_level) = NaN;
+r_x1(p_x1 >= sig_level) = NaN;
+r_x2(p_x2 >= sig_level) = NaN;
 
 % Note cells with positive cpue correlation and negative oceanographic correlation
-x_cor(r_vals > 0 & r_ctr < 0) = 1;
-x_anti_cor(isnan(x_cor)) = 1;
+x_cor1(r_vals > 0 & r_x1 < 0) = 1;
+x_anti_cor1(isnan(x_cor1)) = 1;
+
+x_cor2(r_vals > 0 & r_x2 < 0) = 1;
+x_anti_cor2(isnan(x_cor2)) = 1;
 
 % Omit confidential cells
 r_vals(vessels < 3) = NaN;
@@ -248,12 +269,13 @@ axesm('mercator','MapLatLimit',[10 40],'MapLonLimit',[180 230], ...
     'MLabelParallel', 10, 'MLabelLocation', 10, 'PLabelLocation', 10); % label every 10 degrees, below map 
 Ig = geoshow(lat_grid_used,lon_grid_used,r_vals,'DisplayType','texturemap');
 set(Ig,'AlphaData',double(~isnan(r_vals)),'AlphaDataMapping','none','FaceAlpha','texturemap'); 
-contourm(lat_grid_used,lon_grid_used,ctr_climo, 'k');
-% contourm(lat_grid_used,lon_grid_used,r_ctr, [0 0], 'k');
-plotm(lat_grid_used, lon_grid_used, x_anti_cor, 'kx');
-plotm([20 20], [180 230], 'k');
-plotm([10 40], [210 210], 'k');
-plotm([26 26], [180 210], 'k');
+plotm(lat_grid_used, lon_grid_used, x_anti_cor1, 'kx');
+if ~isnan(cor_var2)
+    plotm(lat_grid_used, lon_grid_used, x_anti_cor2, 'k+');
+end
+% plotm([20 20], [180 230], 'k');
+% plotm([10 40], [210 210], 'k');
+% plotm([26 26], [180 210], 'k');
 geoshow('landareas.shp','FaceColor',[0.5 0.5 0.5]);
 colormap(redblueTecplot)
 clim([min_val max_val])
