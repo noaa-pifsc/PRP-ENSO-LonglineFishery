@@ -1,0 +1,153 @@
+---
+title: "CPUEtable"
+format: docx
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Purpose
+The purpose of this script is to create a table that has the significant Pearson
+correlations between each climate index and various fishery measures.  
+
+I'm sure there are more efficient ways to do this, but I'm drawing on code that 
+I wrote during a power outage (when I couldn't install packages or look things
+up).  Since the code exists, I'm running with it.
+
+This script borrows code from:
+IndexAnalysis/SpeciesWithClimateIndicies.R (thanks, Johanna!)
+
+```{r, echo = FALSE, message = FALSE}
+# Set up environment
+library(tidyverse, quietly = TRUE)
+library(here)
+library(tidync)
+library(reshape2)
+library(knitr)
+```
+
+```{r, echo = FALSE}
+# Load and wrangle data
+# when loading climate indices: 
+# filter to period of interest, create common column names, and combine
+oni <- read_csv(here("ClimateIndices", "ONI_withPhases.csv"), show_col_types = FALSE) |>
+  filter(YR >= 1995 & YR <= 2024) |> 
+  rename(Year=YR, Month=CentralMonth)
+npgo <- read_csv(here("ClimateIndices", "NPGO.csv"), show_col_types = FALSE) |>
+  filter(YEAR >= 1995 & YEAR <= 2024) |>
+  rename(Year=YEAR, Month=MONTH)
+pdo <- read_csv(here("ClimateIndices", "PDO.csv"), show_col_types = FALSE) |>
+  filter(Year >= 1995 & Year <= 2024)
+# join indices together
+climIdx <- left_join(oni, pdo, by = join_by(Month, Year)) |>
+  left_join(npgo, by = join_by(Month, Year)) |> 
+  mutate(MonthIndex=1:360)
+
+# Tidy up
+rm(npgo, oni, pdo)
+
+# Create tidync objects
+Effort_nc <- tidync(here("FisheryData", "TotalEffort.nc"))
+Bigeye_nc <- tidync(here("FisheryData", "TotalBigeyeCaught.nc"))
+Yellowfin_nc <- tidync(here("FisheryData", "TotalYellowfinCaught.nc"))
+Mahi_nc <- tidync(here("FisheryData", "TotalMahiCaught.nc"))
+Pomfret_nc <- tidync(here("FisheryData", "TotalPomfretCaught.nc"))
+Sword_nc <- tidync(here("FisheryData", "TotalSwordfishCaught.nc"))
+PMUS_nc <- tidync(here("FisheryData", "TotalPMUS.nc"))
+
+# Extract variables
+# In a tidy-compatible format 
+# and convert lat, lon, and month to numeric
+Effort_t <- Effort_nc |>
+  hyper_tibble() |>
+  mutate_at(c('Longitude', 'Latitude', 'Month'), as.numeric)
+Bigeye_t <- Bigeye_nc |>
+  hyper_tibble() |>
+  mutate_at(c('Longitude', 'Latitude', 'Month'), as.numeric)
+Yellowfin_t <- Yellowfin_nc |>
+  hyper_tibble() |>
+  mutate_at(c('Longitude', 'Latitude', 'Month'), as.numeric)
+Mahi_t <- Mahi_nc |>
+  hyper_tibble() |>
+  mutate_at(c('Longitude', 'Latitude', 'Month'), as.numeric)
+Pomfret_t <- Pomfret_nc |>
+  hyper_tibble() |>
+  mutate_at(c('Longitude', 'Latitude', 'Month'), as.numeric)
+Sword_t <- Sword_nc |>
+  hyper_tibble() |>
+  mutate_at(c('Longitude', 'Latitude', 'Month'), as.numeric)
+PMUS_t <- PMUS_nc |>
+  hyper_tibble() |>
+  mutate_at(c('Longitude', 'Latitude', 'Month'), as.numeric)
+
+# Sum effort and catch by month
+Effort_TS <- Effort_t |>
+  group_by(Month) |>
+  summarise(Effort_ts = sum(`Total Effort`, na.rm = TRUE))
+Bigeye_TS <- Bigeye_t |>
+  group_by(Month) |>
+  summarise(Bigeye_ts = sum(`Total Bigeye Caught`, na.rm = TRUE))
+Yellowfin_TS <- Yellowfin_t |>
+  group_by(Month) |>
+  summarise(Yellowfin_ts = sum(`Total Yellowfin Caught`, na.rm = TRUE))
+Mahi_TS <- Mahi_t |>
+  group_by(Month) |>
+  summarise(Mahi_ts = sum(`Total Mahi Caught`, na.rm = TRUE))
+Pomfret_TS <- Pomfret_t |>
+  group_by(Month) |>
+  summarise(Pomfret_ts = sum(`Total Pomfret Caught`, na.rm = TRUE))
+Sword_TS <- Sword_t |>
+  group_by(Month) |>
+  summarise(Sword_ts = sum(`Total Swordfish Caught`, na.rm = TRUE))
+PMUS_TS <- PMUS_t |>
+  group_by(Month) |>
+  summarise(PMUS_ts = sum(`Total PMUS Caught`, na.rm = TRUE))
+```
+
+```{r, echo = FALSE}
+# Now, build our big data frame that we're going to loop through for correlations
+AllData <- data.frame(ONI = climIdx$ONI, 
+                      PDO = climIdx$PDO, 
+                      NPGO = climIdx$NPGO,
+                      Effort = Effort_TS$Effort_ts,
+                      BigeyeCPUE = Bigeye_TS$Bigeye_ts / Effort_TS$Effort_ts * 1000,
+                      YellowfinCPUE = Yellowfin_TS$Yellowfin_ts / Effort_TS$Effort_ts * 1000,
+                      MahiCPUE = Mahi_TS$Mahi_ts / Effort_TS$Effort_ts * 1000,
+                      PomfretCPUE = Pomfret_TS$Pomfret_ts / Effort_TS$Effort_ts * 1000,
+                      SwordCPUE = Sword_TS$Sword_ts / Effort_TS$Effort_ts * 1000,
+                      PMUSCPUE = PMUS_TS$PMUS_ts / Effort_TS$Effort_ts * 1000)
+
+# Tidy up
+rm(list = setdiff(ls(), "AllData"))
+```
+
+```{r, echo = FALSE}
+# Loop through and do the correlations
+# Create empty matrix to fill
+AllCors <- matrix(NA, nrow = 3, ncol = 7)
+for (r in seq(1, 3, 1)) {
+  for (c in seq(1, 7, 1)) {
+    cor_hold <- cor.test(AllData[,r], AllData[,c+3])
+    if (cor_hold$p.value < 0.05) {
+      AllCors[r,c] <- cor_hold$estimate
+    }
+    c <- c+1
+  }
+  r <- r+1
+}
+rm(r, c)
+
+rownames(AllCors) <- colnames(AllData)[1:3]
+colnames(AllCors) <- colnames(AllData)[4:10]
+```
+
+```{r, echo = FALSE}
+# Tidy some things up
+AllCors <- as.data.frame(AllCors)
+
+# Limit significant figures for plotting
+AllCors <- signif(AllCors, 3)
+
+# Create the table
+kable(AllCors)
+```
