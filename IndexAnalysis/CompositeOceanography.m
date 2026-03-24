@@ -79,7 +79,7 @@ saveas(gcf, 'PDO_D8_Pearson_Contoured.pdf')
 figure
 Corr_Ctr_Map(lat_grid, lon_grid, PDO_9524.PDO, Depth14, Depth14, 100, 50, ...
     700, 0.05, -1, 1, 'PDO & Depth 14-deg')
-saveas(gcf, 'PDO_D14_Pearson_Contoured')
+saveas(gcf, 'PDO_D14_Pearson_Contoured.pdf')
 
 figure
 Corr_Ctr_Map(lat_grid, lon_grid, NPGO_9524.NPGO, O2_2mlpl, O2_2mlpl, 100, 100, ...
@@ -94,7 +94,7 @@ saveas(gcf, 'NPGO_D8_Pearson_Contoured.pdf')
 figure
 Corr_Ctr_Map(lat_grid, lon_grid, NPGO_9524.NPGO, Depth14, Depth14, 100, 50, ...
     700, 0.05, -1, 1, 'NPGO & Depth 14-deg')
-saveas(gcf, 'NPGO_D14_Pearson_Contoured')
+saveas(gcf, 'NPGO_D14_Pearson_Contoured.pdf')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
