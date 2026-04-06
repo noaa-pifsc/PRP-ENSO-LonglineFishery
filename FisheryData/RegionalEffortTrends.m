@@ -43,6 +43,8 @@ clear m NW_lat CW_lat S_lat NE_lat W_lon E_lon
 % Sum effort across all regions, too
 % Remove singleton dimensions
 Total_Effort = squeeze(sum(Effort, [1 2], "omitnan"));
+% Save time series
+save('Total_Effort_TimeSeries.dat', 'Total_Effort', '-ascii');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Linear trends
@@ -55,6 +57,10 @@ CWlm = fitlm(x, Regional_Effort(:,2));
 SWlm = fitlm(x, Regional_Effort(:,3));
 SElm = fitlm(x, Regional_Effort(:,4));
 NElm = fitlm(x, Regional_Effort(:,5));
+
+% Save fitted time series
+TotalEffortTrend = Totlm.Fitted;
+save('TotalEffortTrend.dat', 'TotalEffortTrend', '-ascii')
 
 % Plot total effort and trend
 TotDelta = round((Totlm.Fitted(end) - Totlm.Fitted(1)) / (x(end) - x(1)));
