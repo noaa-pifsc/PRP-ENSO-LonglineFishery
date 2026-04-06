@@ -23,6 +23,7 @@ Vessels = ncread('../FisheryData/TotalVessels.nc', 'Total Vessels');
 % Sum Effort each of the given regions
 % Permute so arrays are Lat x Lon x time
 Effort = permute(Effort, [2 1 3]);
+Vessels = permute(Vessels, [2 1 3]);
 
 % Create lat and lon grids (for plotting)
 % Horizontally stack column with latitudes
