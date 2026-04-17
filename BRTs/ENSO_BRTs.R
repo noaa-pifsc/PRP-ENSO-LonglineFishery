@@ -14,18 +14,14 @@ source("ENSO_BRT_Eval_Function_JJS.R")
 
 # Load dataset
 # This dataset is created in the code CombineDataForBRTs.R and is 1 degree gridded data across the deep-set fishing grounds 1995-2024
-# Here we add some presence/absence, and log transform the CPUE to make it more normally distributed
-dfAll <- readRDS(file.path(mainDir, 'FisheryData/BRT data/ENSO_BRTdata.rds')) %>% 
-  filter(Lat >= 10, Lat <= 40.125, Lon >= 180, Lon <= 230) %>% 
-  mutate(BET_PA = if_else(BIGEYE_TUNA>0, 1, 0, missing=NA), YFT_PA=if_else(YELLOWFIN >0, 1, 0, missing=NA), DOL_PA=if_else(MAHIMAHI>0, 1, 0, missing=NA), BRZ_PA=if_else(POMFRET>0, 1, 0, missing=NA), SWO_PA=if_else(SWORDFISH>0, 1, 0, missing=NA),
-         Log_BET_CPUE=log(BET_CPUE+0.5), Log_YFT_CPUE=log(YFT_CPUE+0.5), Log_BRZ_CPUE=log(BRZ_CPUE+0.5), Log_DOL_CPUE=log(DOL_CPUE+0.5), Log_SWO_CPUE=log(SWO_CPUE+0.5), Random=runif(54909,0,10)) %>% 
-  as.data.frame()
+dfAll <- readRDS(file.path(mainDir, 'FisheryData/BRT data/ENSO_BRTdata.rds'))
 dfNE <- dfAll %>% filter(Longitude >= (209.875) & Latitude >= 20.125)
 dfCW <- dfAll %>% filter(Longitude <= (209.875),  Latitude >= 20.125, Latitude <= 26.125) 
 dfNW <- dfAll %>% filter(Longitude <= (209.875),  Latitude >= 26.125)
 dfSW <- dfAll %>% filter(Longitude <= (209.875),  Latitude <= 20.125) 
 dfSE <- dfAll %>% filter(Longitude >= (209.875),  Latitude <= 20.125)
 
+# For abundance we need to remove all the NaNs
 df <- dfAll[idx <- which(!is.na(df$Log_BET_CPUE)),]
 
 # for (i in 1:5) {
@@ -50,36 +46,39 @@ df <- dfAll[idx <- which(!is.na(df$Log_BET_CPUE)),]
 #   #}
 # }
   
-#df <- dfNE
-#region <- 'NE'
-#spp <- 'YFT'
+df <- dfNE
+region <- 'NE'
+SPP <- 'BET'
+spp <- 'Bigeye'
 
 # Plot the distribution to make sure a gaussian distribution is appropriate
-# ggplot(df, aes(x=Log_CPUE)) + 
-#   geom_histogram(color='black', fill='lightgray', binwidth=0.1)
+ggplot(df, aes(x=Log_BET_CPUE)) +
+  geom_histogram(color='black', fill='lightgray', binwidth=0.1)
 
-# # Set your predictors
-# #Predictors <- which(colnames(df) %in% c("Lon", "Lat", "Oxy_1ml", "Catchability250", "Catchability400", "Year", "Month", "ONI", "Phase", "PDO", "NPGO", "Random"))
-# Predictors <- which(colnames(df) %in% c("Oxy_1ml", "Catchability250", "Catchability400", "ONI", "Phase", "PDO", "NPGO", "Random"))
-# 
-# # And response variable to use
-# Response <- which(colnames(df) %in% paste("Log",spp, 'CPUE', sep="_"))
-# 
-# # Fit model to all predictors
-# # Here we are running test models so we are only running 5 models with a higher learning rate. For the final model I'd use 50-100 models and a learning rate of 0.001
-# Abund_Model_Step<-fit.brt.n_eval_Balanced(dfCW, gbm.x=Predictors, gbm.y= c(Response), lr=0.001, tc=3, family = "gaussian",bag.fraction=0.75, n.folds=5, 5)
-# saveRDS(Abund_Model_Step, paste0('ENSO_', spp, '_testBRT_logCPUE_', region, '.rds'))
-# 
-# Abund_Model<-Abund_Model_Step[[1]]
-# 
-# # Check model fit for R2 and RMSE 
-# Model_Evals_Abund<- data.frame(matrix(unlist(Abund_Model_Step[[2]]), nrow=length(Abund_Model_Step[[2]]), byrow=TRUE))
-# colnames(Model_Evals_Abund)<-c("R2","RMSE")
-# 
-# print(summary(Model_Evals_Abund[,1]))
-# print(summary(Model_Evals_Abund[,2]))
-# 
-# 
+# Set your predictors
+#Predictors <- which(colnames(df) %in% c("Lon", "Lat", "Oxy_1ml", "Catchability250", "Catchability400", "Year", "Month", "ONI", "Phase", "PDO", "NPGO", "Random"))
+Predictors <- which(colnames(df) %in% c("Oxy_2mL", "Catchability", "ONI", "PDO", "NPGO", "Bait", "Leader", "Random", "Year", "Month", "MonthIndex", "Effort"))
+
+# And response variable to use
+Response <- which(colnames(df) %in% 'Effort')  #'BET_PA') #spp) #paste("Log", SPP, 'CPUE', sep="_"))
+# If running an abundance model, remove all zero catches
+df <- df[which(df[,'Effort'] > 0),]
+
+# Fit model to all predictors
+# Here we are running test models so we are only running 5 models with a higher learning rate. For the final model I'd use 50-100 models and a learning rate of 0.001
+Abund_Model_Step<-fit.brt.n_eval_Balanced(df, gbm.x=Predictors, gbm.y= c(Response), lr=0.005, tc=3, family = "poisson",bag.fraction=0.75, n.folds=5, 5)
+saveRDS(Abund_Model_Step, paste0('ENSO_', spp, '_testBRT_Catch_', region, '.rds'))
+
+Abund_Model<-Abund_Model_Step[[1]]
+
+# Check model fit for R2 and RMSE
+Model_Evals_Abund<- data.frame(matrix(unlist(Abund_Model_Step[[2]]), nrow=length(Abund_Model_Step[[2]]), byrow=TRUE))
+colnames(Model_Evals_Abund)<-c("R2","RMSE")
+
+print(summary(Model_Evals_Abund[,1]))
+print(summary(Model_Evals_Abund[,2]))
+
+
 # # Now reduce to 'non-random' predictors
 # # Remove everything scoring lower than the Random variable. 
 # var_tested<-names(df[,Predictors])
