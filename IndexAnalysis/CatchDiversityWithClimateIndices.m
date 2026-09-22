@@ -154,7 +154,7 @@ Confid_mask(1:size(Vessels, 1), 1:size(Vessels, 2)) = ones;
 Confid_mask(Tot_vessels < 3) = NaN;
 
 % There are functions for this at the end of the script
-% Metric_Map(metric_to_map, map_mask, lat_grid_used, lon_grid_used, climate_mode_phase, mn, mx, panel_title)
+% Metric_Map(metric_to_map, vessel_to_map, lat_grid_used, lon_grid_used, climate_mode_phase, mn, mx, panel_title)
 % Climo_Map(metric_to_map, map_mask, lat_grid_used, lon_grid_used, panel_title)
 % Climatologies
 % figure
@@ -172,40 +172,40 @@ Confid_mask(Tot_vessels < 3) = NaN;
 % % ONI
 % figure
 % subplot(2,2,1)
-% Metric_Map(Richness, Confid_mask, lat_grid, lon_grid, PosONI, 1, 15, 'El Niño')
+% Metric_Map(Richness, Vessels, lat_grid, lon_grid, PosONI, 1, 15, 'El Niño')
 % 
 % subplot(2,2,2)
-% Metric_Map(Richness, Confid_mask, lat_grid, lon_grid, NegONI, 1, 15, 'La Niña')
+% Metric_Map(Richness, Vessels, lat_grid, lon_grid, NegONI, 1, 15, 'La Niña')
 % 
 % subplot(2,2,3)
-% Metric_Map(Richness, Confid_mask, lat_grid, lon_grid, NeuONI, 1, 15, 'Neutral')
+% Metric_Map(Richness, Vessels, lat_grid, lon_grid, NeuONI, 1, 15, 'Neutral')
 % 
 % subplot(2,2,4)
-% Metric_Map(Richness, Confid_mask, lat_grid, lon_grid, NonONI, 1, 15, '<5 Consecutive Months')
+% Metric_Map(Richness, Vessels, lat_grid, lon_grid, NonONI, 1, 15, '<5 Consecutive Months')
 % 
 % PDO
 figure
 subplot(1,2,1)
-Metric_Map(Shannon, Confid_mask, lat_grid, lon_grid, PosPDO, 0, 2.8, 'Shannon Index in Positive PDO')
+Metric_Map(Shannon, Vessels, lat_grid, lon_grid, PosPDO, 0, 2.8, 'Shannon Index in Positive PDO')
 
 subplot(1,2,2)
-Metric_Map(Shannon, Confid_mask, lat_grid, lon_grid, NegPDO, 0, 2.8, 'Shannon Index in Negative PDO')
+Metric_Map(Shannon, Vessels, lat_grid, lon_grid, NegPDO, 0, 2.8, 'Shannon Index in Negative PDO')
 
 
 figure
 subplot(1,2,1)
-Metric_Map(Simpson, Confid_mask, lat_grid, lon_grid, PosPDO, 0, 1, 'Simpson Index in Positive PDO')
+Metric_Map(Simpson, Vessels, lat_grid, lon_grid, PosPDO, 0, 1, 'Simpson Index in Positive PDO')
 
 subplot(1,2,2)
-Metric_Map(Simpson, Confid_mask, lat_grid, lon_grid, NegPDO, 0, 1, 'Simpson Index in Negative PDO')
+Metric_Map(Simpson, Vessels, lat_grid, lon_grid, NegPDO, 0, 1, 'Simpson Index in Negative PDO')
 
 % % NPGO
 % figure
 % subplot(1,2,1)
-% Metric_Map(Shannon, Confid_mask, lat_grid, lon_grid, PosNPGO, 1, 15, 'Positive NPGO')
+% Metric_Map(Shannon, Vessels, lat_grid, lon_grid, PosNPGO, 1, 15, 'Positive NPGO')
 % 
 % subplot(1,2,2)
-% Metric_Map(Shannon, Confid_mask, lat_grid, lon_grid, NegNPGO, 1, 15, 'Negative NPGO')
+% Metric_Map(Shannon, Vessels, lat_grid, lon_grid, NegNPGO, 1, 15, 'Negative NPGO')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Functions
@@ -247,10 +247,15 @@ pbaspect([2 1 1]);
 end
 
 % Function to create maps of diversity metrics by phase
-function Metric_Map(metric_to_map, map_mask, lat_grid_used, lon_grid_used, climate_mode_phase, mn, mx, panel_title)
-m_map = mean(metric_to_map(:,:,~isnan(climate_mode_phase)),3, "omitnan");
+function Metric_Map(metric_to_map, vessel_to_map, lat_grid_used, lon_grid_used, climate_mode_phase, mn, mx, panel_title)
+phase_months = ~isnan(climate_mode_phase);
+phase_vessels = sum(vessel_to_map(:,:,phase_months), 3, 'omitnan');
+phase_mask = ones(size(phase_vessels));
+phase_mask(phase_vessels < 3) = NaN;
+% Evaluate confidentiality over the same phase-month window being plotted.
+m_map = mean(metric_to_map(:,:,phase_months),3, "omitnan");
 m_map(m_map == 0) = NaN; % zeros clutter the plot
-m_map = m_map .* map_mask; % to eliminate confidential points
+m_map = m_map .* phase_mask; % to eliminate confidential points
 axesm('mercator','MapLatLimit',[10 40],'MapLonLimit',[180 230], ...
     'MLineLocation', 10, 'PLineLocation', 10, ... % draw every 10 degrees         
     'Grid', 'on', 'MeridianLabel','on','ParallelLabel','on', ...
@@ -289,8 +294,6 @@ title(sprintf('%s'), panel_title)
 set(gcf,'renderer','Painters')
 tightmap
 end
-
-
 
 
 
