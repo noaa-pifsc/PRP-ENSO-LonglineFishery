@@ -32,9 +32,12 @@ find_isopleth_depth <- function(property_3d_matrix,
     stop("depth, target_isopleth, and depth_max must be numeric.")
   }
 
+  # Match Matlab dsearchn behavior by searching to the nearest model level.
   depth_max_loc <- which.min(abs(depth - depth_max))
   depth_steps <- diff(depth)
 
+  # Reorder the search so profiles are always traversed from shallow to deep,
+  # regardless of whether depth is stored in ascending or descending order.
   if (all(depth_steps >= 0)) {
     search_idx <- seq_len(depth_max_loc)
   } else if (all(depth_steps <= 0)) {
@@ -48,16 +51,23 @@ find_isopleth_depth <- function(property_3d_matrix,
   search_matrix <- matrix(search_profiles, nrow = length(search_idx))
   full_matrix <- matrix(property_3d_matrix, nrow = dims[1])
 
+  # Treat NA comparisons as "not below target" so missing values before the
+  # first crossing do not create false positives.
   below_target <- search_matrix < target_isopleth
   below_target[is.na(below_target)] <- FALSE
 
   any_crossing <- colSums(below_target) > 0L
   all_missing <- colSums(!is.na(full_matrix)) == 0L
 
+  # Default to depth_max where no crossing is found, then overwrite the
+  # all-missing and crossing cases below.
   isopleth_depth <- rep(depth_max, ncol(search_matrix))
   isopleth_depth[all_missing] <- NA_real_
 
   if (any(any_crossing)) {
+    # Identify the first below-threshold level in each profile and return the
+    # depth immediately above it. A first-level crossing has no shallower level,
+    # so it remains NA rather than indexing past the start of the vector.
     first_crossing <- max.col(t(below_target[, any_crossing, drop = FALSE]), ties.method = "first")
     crossing_depths <- rep(NA_real_, sum(any_crossing))
     valid_crossing <- first_crossing > 1L
