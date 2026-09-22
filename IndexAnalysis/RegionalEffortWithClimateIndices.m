@@ -404,50 +404,42 @@ lat_grid = repmat(Lat,1,size(Lon,1));
 % Transpose column with longitudes to a row and vertically stack
 lon_grid = repmat(Lon',size(Lat,1),1);
 
-% Filter effort to be non-confidential
+% Keep arrays as Lat x Lon x time so confidentiality can be evaluated over
+% the same phase-month window that is being plotted.
 % Permute so arrays are Lat x Lon x time
 Vessels = permute(Vessels, [2 1 3]);
-Effort_nonconfid = Effort;
-Tot_vessels = sum(Vessels, 3, 'omitnan');
-for r = 1:1:size(Tot_vessels,1)
-    for c = 1:1:size(Tot_vessels,2)
-        if Tot_vessels(r,c) < 3
-            Effort_nonconfid(r,c,:) = 0;
-        end
-    end
-end
 
 % There's a function for this at the end of the script
-% Effort_Map(effort_to_map, lat_grid_used, lon_grid_used, climate_mode_phase, panel_title)
+% Effort_Map(effort_to_map, vessel_to_map, lat_grid_used, lon_grid_used, climate_mode_phase, panel_title)
 % ONI
 figure
 subplot(2,2,1)
-Effort_Map(Effort_nonconfid, lat_grid, lon_grid, PosONI, 'El Niño')
+Effort_Map(Effort, Vessels, lat_grid, lon_grid, PosONI, 'El Niño')
 
 subplot(2,2,2)
-Effort_Map(Effort_nonconfid, lat_grid, lon_grid, NegONI, 'La Niña')
+Effort_Map(Effort, Vessels, lat_grid, lon_grid, NegONI, 'La Niña')
 
 subplot(2,2,3)
-Effort_Map(Effort_nonconfid, lat_grid, lon_grid, NeuONI, 'Neutral')
+Effort_Map(Effort, Vessels, lat_grid, lon_grid, NeuONI, 'Neutral')
 
 subplot(2,2,4)
-Effort_Map(Effort_nonconfid, lat_grid, lon_grid, NonONI, '<5 Consecutive Months')
+Effort_Map(Effort, Vessels, lat_grid, lon_grid, NonONI, '<5 Consecutive Months')
 
 % PDO
 figure
 subplot(1,2,1)
-Effort_Map(Effort_nonconfid, lat_grid, lon_grid, PosPDO, 'Positive PDO')
+Effort_Map(Effort, Vessels, lat_grid, lon_grid, PosPDO, 'Positive PDO')
 
 subplot(1,2,2)
-Effort_Map(Effort_nonconfid, lat_grid, lon_grid, NegPDO, 'Negative PDO')
+Effort_Map(Effort, Vessels, lat_grid, lon_grid, NegPDO, 'Negative PDO')
 
 % NPGO
 figure
 subplot(1,2,1)
-Effort_Map(Effort_nonconfid, lat_grid, lon_grid, PosNPGO, 'Positive NPGO')
+Effort_Map(Effort, Vessels, lat_grid, lon_grid, PosNPGO, 'Positive NPGO')
 
 subplot(1,2,2)
-Effort_Map(Effort_nonconfid, lat_grid, lon_grid, NegNPGO, 'Negative NPGO')
+Effort_Map(Effort, Vessels, lat_grid, lon_grid, NegNPGO, 'Negative NPGO')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Functions
@@ -516,13 +508,21 @@ pbaspect([2 1 1]);
 end
 
 % Function to create maps of effort by phase
-function Effort_Map(effort_to_map, lat_grid_used, lon_grid_used, climate_mode_phase, panel_title)
+function Effort_Map(effort_to_map, vessel_to_map, lat_grid_used, lon_grid_used, climate_mode_phase, panel_title)
+phase_months = ~isnan(climate_mode_phase);
+phase_effort = sum(effort_to_map(:,:,phase_months), 3, 'omitnan');
+phase_vessels = sum(vessel_to_map(:,:,phase_months), 3, 'omitnan');
+% Evaluate confidentiality over the same phase-month window being plotted.
+phase_effort(phase_vessels < 3) = NaN;
+phase_effort(phase_effort == 0) = NaN;
+phase_log_effort = log10(phase_effort);
+
 axesm('mercator','MapLatLimit',[10 40],'MapLonLimit',[180 230], ...
     'MLineLocation', 10, 'PLineLocation', 10, ... % draw every 10 degrees         
     'Grid', 'on', 'MeridianLabel','on','ParallelLabel','on', ...
     'MLabelParallel', 10, 'MLabelLocation', 10, 'PLabelLocation', 10); % label every 10 degrees, below map 
-Ig = geoshow(lat_grid_used,lon_grid_used,log10(sum(effort_to_map(:,:,~isnan(climate_mode_phase)),3)),'DisplayType','texturemap');
-set(Ig,'AlphaData',double(~isinf(log10(sum(effort_to_map,3)))),'AlphaDataMapping','none','FaceAlpha','texturemap'); 
+Ig = geoshow(lat_grid_used,lon_grid_used,phase_log_effort,'DisplayType','texturemap');
+set(Ig,'AlphaData',double(~isnan(phase_log_effort)),'AlphaDataMapping','none','FaceAlpha','texturemap'); 
 plotm([20 20], [180 230], 'k');
 plotm([10 40], [210 210], 'k');
 plotm([26 26], [180 210], 'k');
@@ -534,7 +534,6 @@ title(sprintf('%s'), panel_title)
 set(gcf,'renderer','Painters')
 tightmap
 end
-
 
 
 
