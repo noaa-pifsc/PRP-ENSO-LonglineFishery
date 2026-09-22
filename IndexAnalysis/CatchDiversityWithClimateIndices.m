@@ -250,7 +250,7 @@ end
 function Metric_Map(metric_to_map, vessel_to_map, lat_grid_used, lon_grid_used, climate_mode_phase, mn, mx, panel_title)
 phase_months = ~isnan(climate_mode_phase);
 phase_vessels = sum(vessel_to_map(:,:,phase_months), 3, 'omitnan');
-phase_mask(1:size(vessel_to_map, 1), 1:size(vessel_to_map, 2)) = ones;
+phase_mask = ones(size(phase_vessels));
 phase_mask(phase_vessels < 3) = NaN;
 % Evaluate confidentiality over the same phase-month window being plotted.
 m_map = mean(metric_to_map(:,:,phase_months),3, "omitnan");
@@ -294,7 +294,6 @@ title(sprintf('%s'), panel_title)
 set(gcf,'renderer','Painters')
 tightmap
 end
-
 
 
 
