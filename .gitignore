@@ -1,0 +1,15 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# Confidential and derived data: keep datasets out of version control.
+*.csv
+*.rds
+*.nc
+*.dat
+
+# Repository-local data stores that may contain sensitive records.
+FisheryData/Longline data/
+FisheryData/BRT data/
+BRTs/*.rds
